@@ -8,6 +8,7 @@ import {
   type StudentBracket,
   type StudentPick,
   type MasterResult,
+  type Song,
   type UUID,
 } from '../utils/bracketLogic';
 import {
@@ -15,6 +16,8 @@ import {
   createLeaderboard,
   type StudentScore,
 } from '../utils/scoring';
+import RoundAccuracyPie from '../components/charts/RoundAccuracyPie';
+import PredictionDistributionPie from '../components/charts/PredictionDistributionPie';
 
 interface Class {
   id: UUID;
@@ -30,6 +33,11 @@ export default function TeacherDashboardPage() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<UUID | null>(null);
   const [leaderboard, setLeaderboard] = useState<StudentScore[]>([]);
+  const [matchups, setMatchups] = useState<BracketMatchup[]>([]);
+  const [songs, setSongs] = useState<Song[]>([]);
+  const [classBrackets, setClassBrackets] = useState<StudentBracket[]>([]);
+  const [allPicks, setAllPicks] = useState<StudentPick[]>([]);
+  const [masterResults, setMasterResults] = useState<MasterResult[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -99,6 +107,7 @@ export default function TeacherDashboardPage() {
 
       if (masterResultsError) throw masterResultsError;
       const masterResults = (masterResultsData || []) as MasterResult[];
+      setMasterResults(masterResults);
 
       // Fetch bracket matchups
       const { data: matchupsData, error: matchupsError } = await supabase
@@ -107,7 +116,17 @@ export default function TeacherDashboardPage() {
         .eq('season_id', activeSeason.id);
 
       if (matchupsError) throw matchupsError;
-      const matchups = (matchupsData || []) as BracketMatchup[];
+      const matchupsDataTyped = (matchupsData || []) as BracketMatchup[];
+      setMatchups(matchupsDataTyped);
+
+      // Fetch songs for active season
+      const { data: songsData, error: songsError } = await supabase
+        .from('songs')
+        .select('*')
+        .eq('season_id', activeSeason.id);
+
+      if (songsError) throw songsError;
+      setSongs((songsData || []) as Song[]);
 
       // Fetch all students in the class
       const { data: classStudentsData, error: classStudentsError } = await supabase
@@ -129,24 +148,26 @@ export default function TeacherDashboardPage() {
         .in('student_id', Array.from(studentNames.keys()));
 
       if (classBracketsError) throw classBracketsError;
-      const classBrackets = (classBracketsData || []) as StudentBracket[];
+      const classBracketsDataTyped = (classBracketsData || []) as StudentBracket[];
+      setClassBrackets(classBracketsDataTyped);
 
       // Fetch all student picks for these brackets
-      const bracketIds = classBrackets.map(b => b.id);
+      const bracketIds = classBracketsDataTyped.map(b => b.id);
       const { data: allPicksData, error: allPicksError } = await supabase
         .from('student_picks')
         .select('*')
         .in('student_bracket_id', bracketIds);
 
       if (allPicksError) throw allPicksError;
-      const allPicks = (allPicksData || []) as StudentPick[];
+      const allPicksDataTyped = (allPicksData || []) as StudentPick[];
+      setAllPicks(allPicksDataTyped);
 
       // Compute scores and leaderboard
       const scores = computePerStudentScores(
-        classBrackets,
-        allPicks,
+        classBracketsDataTyped,
+        allPicksDataTyped,
         masterResults,
-        matchups,
+        matchupsDataTyped,
         studentNames
       );
       const sortedLeaderboard = createLeaderboard(scores);
@@ -190,28 +211,63 @@ export default function TeacherDashboardPage() {
         </label>
       </div>
 
-      {selectedClassId && (
-        <div>
-          <h2>Class Leaderboard</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Rank</th>
-                <th>Name</th>
-                <th>Total Score</th>
-              </tr>
-            </thead>
-            <tbody>
-              {leaderboard.map((score) => (
-                <tr key={score.student_id}>
-                  <td>{score.rank}</td>
-                  <td>{score.student_name}</td>
-                  <td>{score.total_score}</td>
+      {selectedClassId && activeSeason && leaderboard.length > 0 && (
+        <>
+          <div>
+            <h2>Class Leaderboard</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Name</th>
+                  <th>Total Score</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {leaderboard.map((score) => (
+                  <tr key={score.student_id}>
+                    <td>{score.rank}</td>
+                    <td>{score.student_name}</td>
+                    <td>{score.total_score}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div>
+            <h2>Analytics</h2>
+            {Array.from(
+              new Set(matchups.map(m => m.round))
+            )
+              .sort((a, b) => a - b)
+              .map(round => {
+                const roundMatchups = matchups.filter(m => m.round === round);
+                return (
+                  <div key={round}>
+                    <RoundAccuracyPie
+                      round={round}
+                      classStudentBrackets={classBrackets}
+                      allStudentPicks={allPicks}
+                      masterResults={masterResults}
+                      allMatchups={matchups}
+                    />
+                    {roundMatchups.map(matchup => (
+                      <div key={matchup.id}>
+                        <h4>Matchup {matchup.matchup_number}</h4>
+                        <PredictionDistributionPie
+                          matchupId={matchup.id}
+                          classStudentBrackets={classBrackets}
+                          allStudentPicks={allPicks}
+                          songs={songs}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+          </div>
+        </>
       )}
     </div>
   );

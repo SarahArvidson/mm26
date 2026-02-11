@@ -19,6 +19,7 @@ import {
   getStudentRank,
   type StudentScore,
 } from '../utils/scoring';
+import RoundAccuracyPie from '../components/charts/RoundAccuracyPie';
 
 export default function StudentBracketPage() {
   const { user } = useAuth();
@@ -34,6 +35,9 @@ export default function StudentBracketPage() {
   const [leaderboard, setLeaderboard] = useState<StudentScore[]>([]);
   const [roundBreakdown, setRoundBreakdown] = useState<Array<{ round: number; score: number }>>([]);
   const [studentRank, setStudentRank] = useState(0);
+  const [classBrackets, setClassBrackets] = useState<StudentBracket[]>([]);
+  const [allPicks, setAllPicks] = useState<StudentPick[]>([]);
+  const [masterResults, setMasterResults] = useState<MasterResult[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -144,7 +148,8 @@ export default function StudentBracketPage() {
         .eq('season_id', active.id);
 
       if (masterResultsError) throw masterResultsError;
-      const masterResults = (masterResultsData || []) as MasterResult[];
+      const masterResultsDataTyped = (masterResultsData || []) as MasterResult[];
+      setMasterResults(masterResultsDataTyped);
 
       // Fetch all students in the class
       const { data: classStudentsData, error: classStudentsError } = await supabase
@@ -166,23 +171,25 @@ export default function StudentBracketPage() {
         .in('student_id', Array.from(studentNames.keys()));
 
       if (classBracketsError) throw classBracketsError;
-      const classBrackets = (classBracketsData || []) as StudentBracket[];
+      const classBracketsDataTyped = (classBracketsData || []) as StudentBracket[];
+      setClassBrackets(classBracketsDataTyped);
 
       // Fetch all student picks for these brackets
-      const bracketIds = classBrackets.map(b => b.id);
+      const bracketIds = classBracketsDataTyped.map(b => b.id);
       const { data: allPicksData, error: allPicksError } = await supabase
         .from('student_picks')
         .select('*')
         .in('student_bracket_id', bracketIds);
 
       if (allPicksError) throw allPicksError;
-      const allPicks = (allPicksData || []) as StudentPick[];
+      const allPicksDataTyped = (allPicksData || []) as StudentPick[];
+      setAllPicks(allPicksDataTyped);
 
       // Compute scores and leaderboard
       const scores = computePerStudentScores(
-        classBrackets,
-        allPicks,
-        masterResults,
+        classBracketsDataTyped,
+        allPicksDataTyped,
+        masterResultsDataTyped,
         matchups,
         studentNames
       );
@@ -195,7 +202,7 @@ export default function StudentBracketPage() {
 
       const breakdown = computePerRoundBreakdown(
         studentPicks,
-        masterResults,
+        masterResultsDataTyped,
         matchups
       );
       setRoundBreakdown(breakdown);
@@ -399,6 +406,24 @@ export default function StudentBracketPage() {
           </tbody>
         </table>
       </div>
+
+      {classBrackets.length > 0 && allPicks.length > 0 && masterResults.length > 0 && (
+        <div>
+          <h2>Class Accuracy by Round</h2>
+          {Array.from(new Set(matchups.map(m => m.round)))
+            .sort((a, b) => a - b)
+            .map(round => (
+              <RoundAccuracyPie
+                key={round}
+                round={round}
+                classStudentBrackets={classBrackets}
+                allStudentPicks={allPicks}
+                masterResults={masterResults}
+                allMatchups={matchups}
+              />
+            ))}
+        </div>
+      )}
     </div>
   );
 }
