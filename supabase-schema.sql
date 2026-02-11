@@ -24,7 +24,7 @@ CREATE TABLE classes (
 
 -- Students table
 CREATE TABLE students (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
   username TEXT NOT NULL,
   password_hash TEXT NOT NULL,
