@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
 import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
 import StudentBracketPage from './pages/StudentBracketPage';
@@ -11,20 +12,22 @@ import './App.css';
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<LoginPage />} />
-          <Route path="login" element={<LoginPage />} />
-          <Route path="student-bracket" element={<StudentBracketPage />} />
-          <Route path="teacher-dashboard" element={<TeacherDashboardPage />} />
-          <Route path="master-bracket" element={<MasterBracketPage />} />
-          <Route path="video-library" element={<VideoLibraryPage />} />
-          <Route path="instructions" element={<InstructionsPage />} />
-          <Route path="settings" element={<SettingsPage />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<LoginPage />} />
+            <Route path="login" element={<LoginPage />} />
+            <Route path="student-bracket" element={<StudentBracketPage />} />
+            <Route path="teacher-dashboard" element={<TeacherDashboardPage />} />
+            <Route path="master-bracket" element={<MasterBracketPage />} />
+            <Route path="video-library" element={<VideoLibraryPage />} />
+            <Route path="instructions" element={<InstructionsPage />} />
+            <Route path="settings" element={<SettingsPage />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 

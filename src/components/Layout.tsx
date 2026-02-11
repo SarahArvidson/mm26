@@ -1,8 +1,15 @@
 import { useState } from 'react';
 import { Link, Outlet } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
+    setMenuOpen(false);
+  };
 
   return (
     <div>
@@ -19,6 +26,9 @@ export default function Layout() {
             <Link to="/video-library" onClick={() => setMenuOpen(false)}>Video Library</Link>
             <Link to="/instructions" onClick={() => setMenuOpen(false)}>Instructions</Link>
             <Link to="/settings" onClick={() => setMenuOpen(false)}>Settings</Link>
+            {user && (
+              <button onClick={handleLogout}>Logout</button>
+            )}
           </nav>
         )}
       </header>
