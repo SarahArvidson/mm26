@@ -28,12 +28,30 @@ export interface StudentPick {
   created_at: string;
 }
 
+export interface Song {
+  id: UUID;
+  season_id: UUID;
+  title: string;
+  artist: string;
+  youtube_url: string | null;
+  created_at: string;
+}
+
 export interface MasterResult {
   id: UUID;
   season_id: UUID;
   bracket_matchup_id: UUID;
   winner_song_id: UUID;
   updated_at: string;
+}
+
+export interface StudentBracket {
+  id: UUID;
+  student_id: UUID;
+  season_id: UUID;
+  finalized: boolean;
+  points: number;
+  created_at: string;
 }
 
 /**
