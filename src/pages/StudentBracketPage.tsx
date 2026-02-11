@@ -9,8 +9,16 @@ import {
   type Song,
   type StudentPick,
   type StudentBracket,
+  type MasterResult,
   type UUID,
 } from '../utils/bracketLogic';
+import {
+  computePerRoundBreakdown,
+  createLeaderboard,
+  computePerStudentScores,
+  getStudentRank,
+  type StudentScore,
+} from '../utils/scoring';
 
 export default function StudentBracketPage() {
   const { user } = useAuth();
@@ -23,6 +31,9 @@ export default function StudentBracketPage() {
   const [studentPicks, setStudentPicks] = useState<StudentPick[]>([]);
   const [saving, setSaving] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
+  const [leaderboard, setLeaderboard] = useState<StudentScore[]>([]);
+  const [roundBreakdown, setRoundBreakdown] = useState<Array<{ round: number; score: number }>>([]);
+  const [studentRank, setStudentRank] = useState(0);
 
   useEffect(() => {
     if (!user) return;
@@ -115,6 +126,79 @@ export default function StudentBracketPage() {
 
       if (picksError) throw picksError;
       setStudentPicks((picksData || []) as StudentPick[]);
+
+      // Fetch student's class_id
+      const { data: studentData, error: studentError } = await supabase
+        .from('students')
+        .select('class_id')
+        .eq('id', user.id)
+        .single();
+
+      if (studentError) throw studentError;
+      if (!studentData) throw new Error('Student not found');
+
+      // Fetch master results for scoring
+      const { data: masterResultsData, error: masterResultsError } = await supabase
+        .from('master_results')
+        .select('*')
+        .eq('season_id', active.id);
+
+      if (masterResultsError) throw masterResultsError;
+      const masterResults = (masterResultsData || []) as MasterResult[];
+
+      // Fetch all students in the class
+      const { data: classStudentsData, error: classStudentsError } = await supabase
+        .from('students')
+        .select('id, name')
+        .eq('class_id', studentData.class_id);
+
+      if (classStudentsError) throw classStudentsError;
+      const studentNames = new Map<UUID, string>();
+      (classStudentsData || []).forEach((s: any) => {
+        studentNames.set(s.id, s.name);
+      });
+
+      // Fetch all student brackets for the class
+      const { data: classBracketsData, error: classBracketsError } = await supabase
+        .from('student_brackets')
+        .select('*')
+        .eq('season_id', active.id)
+        .in('student_id', Array.from(studentNames.keys()));
+
+      if (classBracketsError) throw classBracketsError;
+      const classBrackets = (classBracketsData || []) as StudentBracket[];
+
+      // Fetch all student picks for these brackets
+      const bracketIds = classBrackets.map(b => b.id);
+      const { data: allPicksData, error: allPicksError } = await supabase
+        .from('student_picks')
+        .select('*')
+        .in('student_bracket_id', bracketIds);
+
+      if (allPicksError) throw allPicksError;
+      const allPicks = (allPicksData || []) as StudentPick[];
+
+      // Compute scores and leaderboard
+      const scores = computePerStudentScores(
+        classBrackets,
+        allPicks,
+        masterResults,
+        matchups,
+        studentNames
+      );
+      const sortedLeaderboard = createLeaderboard(scores);
+      setLeaderboard(sortedLeaderboard);
+
+      // Compute current student's rank and breakdown
+      const rank = getStudentRank(user.id, sortedLeaderboard);
+      setStudentRank(rank);
+
+      const breakdown = computePerRoundBreakdown(
+        studentPicks,
+        masterResults,
+        matchups
+      );
+      setRoundBreakdown(breakdown);
     } catch (err: any) {
       setError(err.message || 'Failed to load data');
     } finally {
@@ -269,6 +353,52 @@ export default function StudentBracketPage() {
           {finalizing ? 'Finalizing...' : 'Finalize Bracket'}
         </button>
       )}
+
+      <div>
+        <h2>Your Ranking</h2>
+        <p>Rank: {studentRank > 0 ? `#${studentRank}` : 'Not ranked'}</p>
+        <p>Total Score: {leaderboard.find(s => s.student_id === user?.id)?.total_score || 0}</p>
+        
+        <h3>Per-Round Breakdown</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Round</th>
+              <th>Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            {roundBreakdown.map(({ round, score }) => (
+              <tr key={round}>
+                <td>Round {round}</td>
+                <td>{score}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div>
+        <h2>Class Leaderboard</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Name</th>
+              <th>Total Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            {leaderboard.map((score) => (
+              <tr key={score.student_id}>
+                <td>{score.rank}</td>
+                <td>{score.student_name}</td>
+                <td>{score.total_score}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

@@ -135,13 +135,20 @@ export function computeStudentBracketScore(
     matchupRoundMap.set(matchup.id, matchup.round);
   });
 
-  // Score each pick
+  // Score each pick with fixed weights
+  const roundWeights: Record<number, number> = {
+    1: 1,
+    2: 3,
+    3: 5,
+    4: 8,
+  };
+
   studentPicks.forEach(pick => {
     const masterWinner = masterResultsMap.get(pick.bracket_matchup_id);
     if (masterWinner && pick.picked_song_id === masterWinner) {
       const round = matchupRoundMap.get(pick.bracket_matchup_id) || 1;
-      // Award points: round 1 = 1 point, round 2 = 2 points, round 3 = 4 points, etc.
-      score += Math.pow(2, round - 1);
+      const weight = roundWeights[round] || 0;
+      score += weight;
     }
   });
 
