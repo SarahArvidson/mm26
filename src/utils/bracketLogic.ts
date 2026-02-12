@@ -81,35 +81,37 @@ export function getValidOptionsForMatchup(
     return options;
   }
 
-  // For later rounds, derive valid options from student's picks in previous round matchups
-  const previousRound = matchup.round - 1;
-  const matchupIndex = matchup.matchup_number - 1; // 0-indexed
-  
-  // Calculate which matchups from previous round feed into this matchup
-  // In a standard bracket: matchup 1 in round N comes from matchups 1-2 in round N-1
-  // matchup 2 in round N comes from matchups 3-4 in round N-1, etc.
-  const startMatchup = matchupIndex * 2 + 1;
-  const endMatchup = startMatchup + 1;
+  // Explicit feed structure based on printed bracket layout
+  const feedMap: Record<number, number[]> = {
+    9: [1, 3],
+    10: [2, 4],
+    11: [5, 7],
+    12: [6, 8],
+    13: [9, 11],
+    14: [10, 12],
+    15: [13, 14],
+  };
 
+  const feedingMatchups = feedMap[matchup.matchup_number] || [];
   const validOptions: UUID[] = [];
 
-  // Find matchups from previous round that feed into this matchup
-  for (let prevMatchupNum = startMatchup; prevMatchupNum <= endMatchup; prevMatchupNum++) {
+  feedingMatchups.forEach(prevMatchupNumber => {
     const prevMatchup = allMatchups.find(
-      m => m.round === previousRound && m.matchup_number === prevMatchupNum
+      m => m.matchup_number === prevMatchupNumber
     );
 
     if (prevMatchup) {
-      // Get the student's pick for this previous matchup
-      const pick = studentPicks.find(p => p.bracket_matchup_id === prevMatchup.id);
+      const pick = studentPicks.find(
+        p => p.bracket_matchup_id === prevMatchup.id
+      );
+
       if (pick) {
         validOptions.push(pick.picked_song_id);
       }
-      // If no pick exists, this matchup is not yet available for selection
     }
-  }
+  });
 
-  return validOptions.filter((id, index, self) => self.indexOf(id) === index); // Remove duplicates
+  return validOptions;
 }
 
 /**
