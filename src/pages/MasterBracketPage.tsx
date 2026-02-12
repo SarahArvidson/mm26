@@ -3,12 +3,16 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import {
   resolveActiveSeason,
+  getValidMasterOptionsForMatchup,
   type Season,
   type BracketMatchup,
   type Song,
   type MasterResult,
+  type StudentBracket,
+  type StudentPick,
   type UUID,
 } from '../utils/bracketLogic';
+import { computePerStudentScores } from '../utils/scoring';
 
 export default function MasterBracketPage() {
   const { user } = useAuth();
@@ -132,6 +136,74 @@ export default function MasterBracketPage() {
         if (insertError) throw insertError;
         setMasterResults(prev => [...prev, newResult as MasterResult]);
       }
+
+      // Recalculate scores for all student brackets
+      // Fetch all student brackets for the active season
+      const { data: allBracketsData, error: bracketsError } = await supabase
+        .from('student_brackets')
+        .select('*')
+        .eq('season_id', activeSeason.id);
+
+      if (bracketsError) throw bracketsError;
+      const allBrackets = (allBracketsData || []) as StudentBracket[];
+
+      if (allBrackets.length === 0) {
+        return;
+      }
+
+      // Fetch all student picks for those brackets
+      const bracketIds = allBrackets.map(b => b.id);
+      const { data: allPicksData, error: picksError } = await supabase
+        .from('student_picks')
+        .select('*')
+        .in('student_bracket_id', bracketIds);
+
+      if (picksError) throw picksError;
+      const allPicks = (allPicksData || []) as StudentPick[];
+
+      // Fetch updated master results
+      const { data: updatedResultsData, error: resultsError } = await supabase
+        .from('master_results')
+        .select('*')
+        .eq('season_id', activeSeason.id);
+
+      if (resultsError) throw resultsError;
+      const updatedMasterResults = (updatedResultsData || []) as MasterResult[];
+
+      // Fetch students to build studentNames map
+      const studentIds = allBrackets.map(b => b.student_id);
+      const { data: studentsData, error: studentsError } = await supabase
+        .from('students')
+        .select('id, name')
+        .in('id', studentIds);
+
+      if (studentsError) throw studentsError;
+      const studentNames = new Map<UUID, string>();
+      (studentsData || []).forEach((s: any) => {
+        studentNames.set(s.id, s.name);
+      });
+
+      // Compute scores using computePerStudentScores
+      const scores = computePerStudentScores(
+        allBrackets,
+        allPicks,
+        updatedMasterResults,
+        matchups,
+        studentNames
+      );
+
+      // Update each bracket with computed score
+      for (const score of scores) {
+        const bracket = allBrackets.find(b => b.student_id === score.student_id);
+        if (bracket) {
+          const { error: updateScoreError } = await supabase.supabase
+            .from('student_brackets')
+            .update({ points: score.total_score })
+            .eq('id', bracket.id);
+
+          if (updateScoreError) throw updateScoreError;
+        }
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to save master result');
     } finally {
@@ -157,12 +229,6 @@ export default function MasterBracketPage() {
     return grouped;
   };
 
-  const getValidOptionsForMatchup = (matchup: BracketMatchup): UUID[] => {
-    const options: UUID[] = [];
-    if (matchup.song1_id) options.push(matchup.song1_id);
-    if (matchup.song2_id) options.push(matchup.song2_id);
-    return options;
-  };
 
   if (loading) {
     return <div>Loading...</div>;
@@ -193,7 +259,7 @@ export default function MasterBracketPage() {
           <div key={round}>
             <h2>Round {round}</h2>
             {roundMatchups.map(matchup => {
-              const validOptions = getValidOptionsForMatchup(matchup);
+              const validOptions = getValidMasterOptionsForMatchup(matchup, matchups, masterResults);
               const masterResult = masterResults.find(r => r.bracket_matchup_id === matchup.id);
               const currentSongId = masterResult?.winner_song_id || '';
               const currentSong = songs.find(s => s.id === currentSongId);

@@ -115,6 +115,61 @@ export function getValidOptionsForMatchup(
 }
 
 /**
+ * Gets valid song options for a master bracket matchup based on master results.
+ * For round 1: returns song1_id and song2_id from the immutable matchup structure.
+ * For later rounds: returns the master_results winner_song_id from previous round matchups that feed into this matchup.
+ * Fully derived - no mutation, no state propagation, no side effects.
+ */
+export function getValidMasterOptionsForMatchup(
+  matchup: BracketMatchup,
+  allMatchups: BracketMatchup[],
+  masterResults: MasterResult[]
+): UUID[] {
+  // Round 1: valid options are the two songs in the immutable matchup structure
+  if (matchup.round === 1) {
+    const options: UUID[] = [];
+    if (matchup.song1_id) options.push(matchup.song1_id);
+    if (matchup.song2_id) options.push(matchup.song2_id);
+    return options;
+  }
+
+  // Explicit feed structure based on printed bracket layout
+  const feedMap: Record<number, number[]> = {
+    9: [1, 3],
+    10: [2, 4],
+    11: [5, 7],
+    12: [6, 8],
+    13: [9, 11],
+    14: [10, 12],
+    15: [13, 14],
+  };
+
+  const feedingMatchups = feedMap[matchup.matchup_number] || [];
+  const validOptions: UUID[] = [];
+
+  // Create a map of bracket_matchup_id -> winner_song_id for quick lookup
+  const masterResultsMap = new Map<UUID, UUID>();
+  masterResults.forEach(result => {
+    masterResultsMap.set(result.bracket_matchup_id, result.winner_song_id);
+  });
+
+  feedingMatchups.forEach(prevMatchupNumber => {
+    const prevMatchup = allMatchups.find(
+      m => m.matchup_number === prevMatchupNumber
+    );
+
+    if (prevMatchup) {
+      const masterResult = masterResultsMap.get(prevMatchup.id);
+      if (masterResult) {
+        validOptions.push(masterResult);
+      }
+    }
+  });
+
+  return validOptions.filter((id, index, self) => self.indexOf(id) === index); // Remove duplicates
+}
+
+/**
  * Computes the score for a student bracket by comparing picks with master results.
  * Awards points based on correct picks, with higher points for later rounds.
  */

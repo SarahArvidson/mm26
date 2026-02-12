@@ -263,7 +263,7 @@ export default function StudentBracketPage() {
       setFinalizing(true);
       setError(null);
 
-      const { error: updateError } = await supabase
+      const { error: updateError } = await supabase.supabase
         .from('student_brackets')
         .update({ finalized: true })
         .eq('id', studentBracket.id);
@@ -362,7 +362,7 @@ export default function StudentBracketPage() {
       <div>
         <h2>Your Ranking</h2>
         <p>Rank: {studentRank > 0 ? `#${studentRank}` : 'Not ranked'}</p>
-        <p>Total Score: {leaderboard.find(s => s.student_id === user?.id)?.total_score || 0}</p>
+       <p>Total Score: {studentBracket?.points ?? 0}</p>
         
         <h3>Per-Round Breakdown</h3>
         <table>
