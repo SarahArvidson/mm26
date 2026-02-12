@@ -99,7 +99,7 @@ export default function MasterBracketPage() {
     }
   };
 
-  const handleMasterSelection = async (matchupId: UUID, songId: UUID) => {
+  const handleMasterSelection = async (matchupId: UUID, songId: string) => {
     if (!activeSeason || !isAdmin || saving) return;
     await handleBatchMasterUpdate([{ matchupId, songId }]);
   };
@@ -224,7 +224,7 @@ export default function MasterBracketPage() {
     setMatchups((refreshedMatchups || []) as BracketMatchup[]);
   };
 
-  const handleBatchMasterUpdate = async (updates: Array<{ matchupId: UUID; songId: UUID }>) => {
+  const handleBatchMasterUpdate = async (updates: Array<{ matchupId: UUID; songId: string }>) => {
     if (!activeSeason || !isAdmin || saving) return;
 
     try {
@@ -235,6 +235,26 @@ export default function MasterBracketPage() {
       for (const { matchupId, songId } of updates) {
         const existingResult = masterResults.find(r => r.bracket_matchup_id === matchupId);
 
+        // Handle clearing winner (empty string)
+        if (!songId) {
+          if (existingResult) {
+            // Delete existing result
+            const { error: deleteError } = await supabase
+              .from('master_results')
+              .delete()
+              .eq('id', existingResult.id);
+
+            if (deleteError) throw deleteError;
+
+            setMasterResults(prev =>
+              prev.filter(r => r.id !== existingResult.id)
+            );
+          }
+          // If no existing result, do nothing
+          continue;
+        }
+
+        // Handle setting/updating winner
         if (existingResult) {
           // Update existing result
           const { error: updateError } = await supabase
