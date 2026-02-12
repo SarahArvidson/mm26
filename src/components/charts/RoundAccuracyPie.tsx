@@ -1,5 +1,6 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts';
-import type { StudentBracket, StudentPick, MasterResult, BracketMatchup, UUID } from '../../utils/bracketLogic';
+import type { StudentBracket, StudentPick, MasterResult, BracketMatchup } from '../../utils/bracketLogic';
+import { computeRoundAccuracyAcrossBrackets } from '../../utils/analytics';
 
 interface RoundAccuracyPieProps {
   round: number;
@@ -18,42 +19,19 @@ export default function RoundAccuracyPie({
   masterResults,
   allMatchups,
 }: RoundAccuracyPieProps) {
-  // Get bracket IDs for the class
-  const bracketIds = new Set(classStudentBrackets.map(b => b.id));
+  const roundResults = computeRoundAccuracyAcrossBrackets(
+    classStudentBrackets,
+    allStudentPicks,
+    masterResults,
+    allMatchups
+  );
 
-  // Get matchups for this round
-  const roundMatchups = allMatchups.filter(m => m.round === round);
-  const roundMatchupIds = new Set(roundMatchups.map(m => m.id));
+  const thisRound = roundResults.find(r => r.round === round);
 
-  // Create master results map
-  const masterResultsMap = new Map<UUID, UUID>();
-  masterResults.forEach(result => {
-    if (roundMatchupIds.has(result.bracket_matchup_id)) {
-      masterResultsMap.set(result.bracket_matchup_id, result.winner_song_id);
-    }
-  });
+  const correctCount = thisRound?.correct ?? 0;
+  const total = thisRound?.total ?? 0;
+  const incorrectCount = total - correctCount;
 
-  // Count correct and incorrect picks
-  let correctCount = 0;
-  let incorrectCount = 0;
-
-  allStudentPicks.forEach(pick => {
-    if (
-      bracketIds.has(pick.student_bracket_id) &&
-      roundMatchupIds.has(pick.bracket_matchup_id)
-    ) {
-      const masterWinner = masterResultsMap.get(pick.bracket_matchup_id);
-      if (masterWinner) {
-        if (pick.picked_song_id === masterWinner) {
-          correctCount++;
-        } else {
-          incorrectCount++;
-        }
-      }
-    }
-  });
-
-  const total = correctCount + incorrectCount;
   const correctPercentage = total > 0 ? Math.round((correctCount / total) * 100) : 0;
   const incorrectPercentage = total > 0 ? Math.round((incorrectCount / total) * 100) : 0;
 

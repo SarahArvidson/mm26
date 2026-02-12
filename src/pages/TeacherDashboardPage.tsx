@@ -38,6 +38,8 @@ export default function TeacherDashboardPage() {
   const [classBrackets, setClassBrackets] = useState<StudentBracket[]>([]);
   const [allPicks, setAllPicks] = useState<StudentPick[]>([]);
   const [masterResults, setMasterResults] = useState<MasterResult[]>([]);
+  const [teacherBrackets, setTeacherBrackets] = useState<StudentBracket[]>([]);
+  const [teacherPicks, setTeacherPicks] = useState<StudentPick[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -85,6 +87,42 @@ export default function TeacherDashboardPage() {
 
       if (classesData && classesData.length > 0) {
         setSelectedClassId(classesData[0].id);
+      }
+
+      // Fetch all students across all teacher classes
+      const classIds = (classesData || []).map((c: Class) => c.id);
+      if (classIds.length > 0) {
+        const { data: allStudentsData, error: allStudentsError } = await supabase
+          .from('students')
+          .select('id')
+          .in('class_id', classIds);
+
+        if (allStudentsError) throw allStudentsError;
+        const allStudentIds = (allStudentsData || []).map((s: any) => s.id);
+
+        // Fetch all student brackets for those students for active season
+        if (allStudentIds.length > 0) {
+          const { data: teacherBracketsData, error: teacherBracketsError } = await supabase
+            .from('student_brackets')
+            .select('*')
+            .eq('season_id', active.id)
+            .in('student_id', allStudentIds);
+
+          if (teacherBracketsError) throw teacherBracketsError;
+          setTeacherBrackets((teacherBracketsData || []) as StudentBracket[]);
+
+          // Fetch all student picks for those brackets
+          const teacherBracketIds = (teacherBracketsData || []).map((b: any) => b.id);
+          if (teacherBracketIds.length > 0) {
+            const { data: teacherPicksData, error: teacherPicksError } = await supabase
+              .from('student_picks')
+              .select('*')
+              .in('student_bracket_id', teacherBracketIds);
+
+            if (teacherPicksError) throw teacherPicksError;
+            setTeacherPicks((teacherPicksData || []) as StudentPick[]);
+          }
+        }
       }
     } catch (err: any) {
       setError(err.message || 'Failed to load data');
@@ -237,6 +275,23 @@ export default function TeacherDashboardPage() {
 
           <div>
             <h2>Analytics</h2>
+            
+            {activeSeason && matchups.length > 0 && masterResults.length > 0 && (
+              <div>
+                <h3>All Classes Combined</h3>
+                {[1, 2, 3, 4].map(round => (
+                  <RoundAccuracyPie
+                    key={round}
+                    round={round}
+                    classStudentBrackets={teacherBrackets}
+                    allStudentPicks={teacherPicks}
+                    masterResults={masterResults}
+                    allMatchups={matchups}
+                  />
+                ))}
+              </div>
+            )}
+
             {Array.from(
               new Set(matchups.map(m => m.round))
             )
