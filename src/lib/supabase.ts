@@ -14,3 +14,5 @@ export const supabase = new SupabaseIntegration({
     },
   },
 });
+
+console.log(import.meta.env.VITE_SUPABASE_URL)

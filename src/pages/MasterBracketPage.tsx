@@ -30,7 +30,7 @@ export default function MasterBracketPage() {
   const checkAdmin = async () => {
     if (!user) return;
     const { data: userData } = await supabase.supabase.auth.getUser();
-    const role = userData.user?.user_metadata?.role;
+    const role = userData.user?.app_metadata?.role;
     setIsAdmin(role === 'admin');
   };
 

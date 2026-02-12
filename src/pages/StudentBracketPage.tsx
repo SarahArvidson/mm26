@@ -94,11 +94,9 @@ export default function StudentBracketPage() {
         .select('*')
         .eq('student_id', user.id)
         .eq('season_id', active.id)
-        .single();
+        .maybeSingle();
 
-      if (bracketError && bracketError.code !== 'PGRST116') {
-        throw bracketError;
-      }
+      if (bracketError) throw bracketError;
 
       let bracket: StudentBracket;
       if (bracketData) {
