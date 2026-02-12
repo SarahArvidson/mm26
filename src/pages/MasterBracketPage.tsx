@@ -233,63 +233,77 @@ export default function MasterBracketPage() {
 
       // Process each update
       for (const { matchupId, songId } of updates) {
-        const existingResult = masterResults.find(r => r.bracket_matchup_id === matchupId);
+        console.log('[batch update]', { matchupId, songId, typeofSongId: typeof songId, length: songId?.length, isEmpty: songId === '' });
+
+        // Always query DB for existing row
+        const { data: existingRow, error: existingErr } = await supabase
+          .from('master_results')
+          .select('id')
+          .eq('bracket_matchup_id', matchupId)
+          .maybeSingle();
+
+        if (existingErr) throw existingErr;
 
         // Handle clearing winner (empty string)
         if (!songId) {
-          if (existingResult) {
-            // Delete existing result
-            const { error: deleteError } = await supabase
+          if (existingRow) {
+            const { error: delErr } = await supabase
               .from('master_results')
               .delete()
-              .eq('id', existingResult.id);
+              .eq('bracket_matchup_id', matchupId);
 
-            if (deleteError) throw deleteError;
+            if (delErr) throw delErr;
 
-            setMasterResults(prev =>
-              prev.filter(r => r.id !== existingResult.id)
-            );
+            // Verify delete actually worked
+            const { data: stillThere } = await supabase
+              .from('master_results')
+              .select('id')
+              .eq('bracket_matchup_id', matchupId)
+              .maybeSingle();
+
+            console.log('[after delete]', { matchupId, stillThere });
+
+            if (stillThere) {
+              throw new Error('Delete did not remove master_result for matchup ' + matchupId);
+            }
           }
-          // If no existing result, do nothing
           continue;
         }
 
         // Handle setting/updating winner
-        if (existingResult) {
-          // Update existing result
-          const { error: updateError } = await supabase
+        if (existingRow) {
+          const { error: updErr } = await supabase
             .from('master_results')
-            .update({ winner_song_id: songId })
-            .eq('id', existingResult.id);
+            .update({ winner_song_id: songId, updated_at: new Date().toISOString() })
+            .eq('bracket_matchup_id', matchupId);
 
-          if (updateError) throw updateError;
-
-          setMasterResults(prev =>
-            prev.map(r =>
-              r.id === existingResult.id ? { ...r, winner_song_id: songId } : r
-            )
-          );
+          if (updErr) throw updErr;
         } else {
-          // Insert new result
-          const { data: newResult, error: insertError } = await supabase
+          const { error: insErr } = await supabase
             .from('master_results')
             .insert({
               season_id: activeSeason.id,
               bracket_matchup_id: matchupId,
               winner_song_id: songId,
-            })
-            .select()
-            .single();
+            });
 
-          if (insertError) throw insertError;
-          setMasterResults(prev => [...prev, newResult as MasterResult]);
+          if (insErr) throw insErr;
         }
       }
 
       // Propagate advancement to rounds 2-4
       await propagateMasterAdvancement();
+
+      // Refresh master_results state from DB
+      const { data: refreshedResults, error: refreshedErr } = await supabase
+        .from('master_results')
+        .select('*')
+        .eq('season_id', activeSeason.id);
+
+      if (refreshedErr) throw refreshedErr;
+      setMasterResults((refreshedResults || []) as MasterResult[]);
     } catch (err: any) {
-      setError(err.message || 'Failed to save master result');
+      setError(err.message || String(err));
     } finally {
       setSaving(false);
     }
@@ -299,6 +313,10 @@ export default function MasterBracketPage() {
     const song = songs.find(s => s.id === songId);
     if (!song) return '';
     return `« ${song.title} » – ${song.artist}`;
+  };
+
+  const isMatchupReady = (matchup: BracketMatchup): boolean => {
+    return matchup.song1_id !== null && matchup.song2_id !== null;
   };
 
   const getMatchupsByRound = (): Map<number, BracketMatchup[]> => {
@@ -347,48 +365,59 @@ export default function MasterBracketPage() {
 
       {Array.from(matchupsByRound.entries())
         .sort(([a], [b]) => a - b)
-        .map(([round, roundMatchups]) => (
-          <div key={round}>
-            <h2>Round {round}</h2>
-            {roundMatchups.map(matchup => {
-              const validOptions = getValidMasterOptionsForMatchup(matchup, matchups, masterResults);
-              const masterResult = masterResults.find(r => r.bracket_matchup_id === matchup.id);
-              const currentSongId = masterResult?.winner_song_id || '';
-              const currentSong = songs.find(s => s.id === currentSongId);
+        .map(([round, roundMatchups]) => {
+          // Filter out incomplete matchups for rounds > 1
+          const readyMatchups = round === 1 
+            ? roundMatchups 
+            : roundMatchups.filter(isMatchupReady);
 
-              return (
-                <div key={matchup.id}>
-                  <label>
-                    Matchup {matchup.matchup_number}:
-                    <select
-                      value={currentSongId}
-                      onChange={(e) => handleMasterSelection(matchup.id, e.target.value)}
-                      disabled={saving || validOptions.length === 0}
-                    >
-                      <option value="">-- Select --</option>
-                      {validOptions.map(songId => (
-                        <option key={songId} value={songId}>
-                          {getSongLabel(songId)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  {currentSong && (
-                    <div>
-                      Winner: {currentSong.youtube_url ? (
-                        <a href={currentSong.youtube_url} target="_blank" rel="noopener noreferrer">
-                          {getSongLabel(currentSongId)}
-                        </a>
-                      ) : (
-                        getSongLabel(currentSongId)
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ))}
+          return (
+            <div key={round}>
+              <h2>Round {round}</h2>
+              {readyMatchups.map(matchup => {
+                const validOptions = getValidMasterOptionsForMatchup(matchup, matchups, masterResults);
+                const masterResult = masterResults.find(r => r.bracket_matchup_id === matchup.id);
+                const currentSongId = masterResult?.winner_song_id || '';
+                const currentSong = songs.find(s => s.id === currentSongId);
+
+                return (
+                  <div key={matchup.id}>
+                    <label>
+                      Matchup {matchup.matchup_number}:
+                      <select
+                        value={currentSongId || ''}
+                        onChange={(e) => {
+                          const nextValue = e.target.value;
+                          console.log('[master select]', { matchupId: matchup.id, nextValue, typeofNextValue: typeof nextValue, length: nextValue?.length });
+                          handleMasterSelection(matchup.id, nextValue);
+                        }}
+                        disabled={saving || validOptions.length === 0}
+                      >
+                        <option value="">-- Select --</option>
+                        {validOptions.map(songId => (
+                          <option key={songId} value={songId}>
+                            {getSongLabel(songId)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    {masterResult && currentSong && (
+                      <div>
+                        Winner: {currentSong.youtube_url ? (
+                          <a href={currentSong.youtube_url} target="_blank" rel="noopener noreferrer">
+                            {getSongLabel(currentSongId)}
+                          </a>
+                        ) : (
+                          getSongLabel(currentSongId)
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
     </div>
   );
 }

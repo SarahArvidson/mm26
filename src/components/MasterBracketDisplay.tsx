@@ -26,6 +26,10 @@ export default function MasterBracketDisplay({
     return `« ${song.title} » – ${song.artist}`;
   };
 
+  const isMatchupReady = (matchup: BracketMatchup): boolean => {
+    return matchup.song1_id !== null && matchup.song2_id !== null;
+  };
+
   const getMatchupsByRound = (): Map<number, BracketMatchup[]> => {
     const grouped = new Map<number, BracketMatchup[]>();
     matchups.forEach(matchup => {
@@ -46,10 +50,16 @@ export default function MasterBracketDisplay({
       
       {Array.from(matchupsByRound.entries())
         .sort(([a], [b]) => a - b)
-        .map(([round, roundMatchups]) => (
-          <div key={round}>
-            {showRoundHeaders && <h2>Round {round}</h2>}
-            {roundMatchups.map(matchup => {
+        .map(([round, roundMatchups]) => {
+          // Filter out incomplete matchups for rounds > 1
+          const readyMatchups = round === 1 
+            ? roundMatchups 
+            : roundMatchups.filter(isMatchupReady);
+
+          return (
+            <div key={round}>
+              {showRoundHeaders && <h2>Round {round}</h2>}
+              {readyMatchups.map(matchup => {
               const masterResult = masterResults.find(r => r.bracket_matchup_id === matchup.id);
               const winnerSongId = masterResult?.winner_song_id;
               const song1 = songs.find(s => s.id === matchup.song1_id);
@@ -81,8 +91,9 @@ export default function MasterBracketDisplay({
                 </div>
               );
             })}
-          </div>
-        ))}
+            </div>
+          );
+        })}
     </>
   );
 }
