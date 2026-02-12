@@ -18,6 +18,8 @@ import {
 } from '../utils/scoring';
 import RoundAccuracyPie from '../components/charts/RoundAccuracyPie';
 import PredictionDistributionPie from '../components/charts/PredictionDistributionPie';
+import EmbedGeneratorPanel from '../components/EmbedGeneratorPanel';
+import { exportVotesToCSV, downloadCSV } from '../utils/exportVotesToCSV';
 
 interface Class {
   id: UUID;
@@ -251,6 +253,47 @@ export default function TeacherDashboardPage() {
 
       {selectedClassId && activeSeason && leaderboard.length > 0 && (
         <>
+          {activeSeason && (
+            <EmbedGeneratorPanel seasonId={activeSeason.id} />
+          )}
+
+          <div style={{ marginBottom: '20px' }}>
+            <h3>Export Data</h3>
+            <button
+              onClick={() => {
+                if (activeSeason && selectedClassId) {
+                  const csv = exportVotesToCSV(
+                    classBrackets,
+                    allPicks,
+                    matchups,
+                    songs,
+                    classes.find(c => c.id === selectedClassId)?.name
+                  );
+                  downloadCSV(csv, `bracket-votes-${classes.find(c => c.id === selectedClassId)?.name || 'class'}-${activeSeason.name}.csv`);
+                }
+              }}
+              style={{ marginRight: '10px' }}
+            >
+              Export Class Votes (CSV)
+            </button>
+            <button
+              onClick={() => {
+                if (activeSeason) {
+                  const csv = exportVotesToCSV(
+                    teacherBrackets,
+                    teacherPicks,
+                    matchups,
+                    songs,
+                    'All Classes'
+                  );
+                  downloadCSV(csv, `bracket-votes-all-classes-${activeSeason.name}.csv`);
+                }
+              }}
+            >
+              Export All Classes Votes (CSV)
+            </button>
+          </div>
+
           <div>
             <h2>Class Leaderboard</h2>
             <table>

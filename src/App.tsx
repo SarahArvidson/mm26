@@ -8,6 +8,8 @@ import MasterBracketPage from './pages/MasterBracketPage';
 import VideoLibraryPage from './pages/VideoLibraryPage';
 import InstructionsPage from './pages/InstructionsPage';
 import SettingsPage from './pages/SettingsPage';
+import EmbedBracketPage from './pages/EmbedBracketPage';
+import PrintBracketPage from './pages/PrintBracketPage';
 import './App.css';
 
 function App() {
@@ -25,6 +27,8 @@ function App() {
             <Route path="instructions" element={<InstructionsPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
+          <Route path="embed/:seasonId" element={<EmbedBracketPage />} />
+          <Route path="print/:seasonId" element={<PrintBracketPage />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

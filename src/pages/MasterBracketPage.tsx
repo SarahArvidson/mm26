@@ -1,3 +1,7 @@
+// IMPORTANT:
+// Scoring is server-triggered when master_results change.
+// Do NOT compute or write student_brackets.points from the UI.
+
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -8,11 +12,9 @@ import {
   type BracketMatchup,
   type Song,
   type MasterResult,
-  type StudentBracket,
-  type StudentPick,
   type UUID,
 } from '../utils/bracketLogic';
-import { computePerStudentScores } from '../utils/scoring';
+import RapidEntryPanel from '../components/RapidEntryPanel';
 
 export default function MasterBracketPage() {
   const { user } = useAuth();
@@ -99,111 +101,173 @@ export default function MasterBracketPage() {
 
   const handleMasterSelection = async (matchupId: UUID, songId: UUID) => {
     if (!activeSeason || !isAdmin || saving) return;
+    await handleBatchMasterUpdate([{ matchupId, songId }]);
+  };
+
+  const propagateMasterAdvancement = async () => {
+    if (!activeSeason) return;
+
+    // Fetch fresh bracket_matchups for active season
+    const { data: allMatchupsData, error: matchupsError } = await supabase
+      .from('bracket_matchups')
+      .select('*')
+      .eq('season_id', activeSeason.id)
+      .order('round', { ascending: true })
+      .order('matchup_number', { ascending: true });
+
+    if (matchupsError) throw matchupsError;
+    const allMatchups = (allMatchupsData || []) as BracketMatchup[];
+
+    // Fetch fresh master_results for active season
+    const { data: allResultsData, error: resultsError } = await supabase
+      .from('master_results')
+      .select('*')
+      .eq('season_id', activeSeason.id);
+
+    if (resultsError) throw resultsError;
+    const allResults = (allResultsData || []) as MasterResult[];
+
+    // Build master results map: matchupId -> winner_song_id
+    const masterResultsMap = new Map<UUID, UUID>();
+    allResults.forEach(result => {
+      masterResultsMap.set(result.bracket_matchup_id, result.winner_song_id);
+    });
+
+    // Round start numbers
+    const roundStarts: Record<number, number> = {
+      1: 1,
+      2: 9,
+      3: 13,
+      4: 15,
+    };
+
+    // Build updates for rounds 2-4
+    const updates: Array<{ matchupId: UUID; song1_id: UUID | null; song2_id: UUID | null }> = [];
+
+    // Process rounds 1-3 to propagate to rounds 2-4
+    for (let round = 1; round <= 3; round++) {
+      const roundStart = roundStarts[round];
+      const nextRoundStart = roundStarts[round + 1];
+
+      const roundMatchups = allMatchups.filter(m => m.round === round);
+      
+      for (const matchup of roundMatchups) {
+        const indexInRound = matchup.matchup_number - roundStart;
+        const nextMatchupNumber = nextRoundStart + Math.floor(indexInRound / 2);
+        
+        const nextMatchup = allMatchups.find(
+          m => m.round === round + 1 && m.matchup_number === nextMatchupNumber
+        );
+        
+        if (!nextMatchup) continue;
+
+        const winnerSongId = masterResultsMap.get(matchup.id) || null;
+        const isSong1 = indexInRound % 2 === 0;
+
+        // Find or create update entry for this next matchup
+        let updateEntry = updates.find(u => {
+          const m = allMatchups.find(m => m.id === u.matchupId);
+          return m && m.round === round + 1 && m.matchup_number === nextMatchupNumber;
+        });
+
+        if (!updateEntry) {
+          // Initialize with current values
+          const currentMatchup = allMatchups.find(m => m.id === nextMatchup.id);
+          updateEntry = {
+            matchupId: nextMatchup.id,
+            song1_id: currentMatchup?.song1_id || null,
+            song2_id: currentMatchup?.song2_id || null,
+          };
+          updates.push(updateEntry);
+        }
+
+        // Set the appropriate slot
+        if (isSong1) {
+          updateEntry.song1_id = winnerSongId;
+        } else {
+          updateEntry.song2_id = winnerSongId;
+        }
+      }
+    }
+
+    // Apply updates only if values changed
+    for (const update of updates) {
+      const currentMatchup = allMatchups.find(m => m.id === update.matchupId);
+      if (!currentMatchup) continue;
+
+      const needsUpdate = 
+        currentMatchup.song1_id !== update.song1_id ||
+        currentMatchup.song2_id !== update.song2_id;
+
+      if (needsUpdate) {
+        const { error: updateError } = await supabase
+          .from('bracket_matchups')
+          .update({
+            song1_id: update.song1_id,
+            song2_id: update.song2_id,
+          })
+          .eq('id', update.matchupId);
+
+        if (updateError) throw updateError;
+      }
+    }
+
+    // Refresh matchups state
+    const { data: refreshedMatchups, error: refreshError } = await supabase
+      .from('bracket_matchups')
+      .select('*')
+      .eq('season_id', activeSeason.id)
+      .order('round', { ascending: true })
+      .order('matchup_number', { ascending: true });
+
+    if (refreshError) throw refreshError;
+    setMatchups((refreshedMatchups || []) as BracketMatchup[]);
+  };
+
+  const handleBatchMasterUpdate = async (updates: Array<{ matchupId: UUID; songId: UUID }>) => {
+    if (!activeSeason || !isAdmin || saving) return;
 
     try {
       setSaving(true);
       setError(null);
 
-      // Check if result already exists
-      const existingResult = masterResults.find(r => r.bracket_matchup_id === matchupId);
+      // Process each update
+      for (const { matchupId, songId } of updates) {
+        const existingResult = masterResults.find(r => r.bracket_matchup_id === matchupId);
 
-      if (existingResult) {
-        // Update existing result
-        const { error: updateError } = await supabase
-          .from('master_results')
-          .update({ winner_song_id: songId })
-          .eq('id', existingResult.id);
+        if (existingResult) {
+          // Update existing result
+          const { error: updateError } = await supabase
+            .from('master_results')
+            .update({ winner_song_id: songId })
+            .eq('id', existingResult.id);
 
-        if (updateError) throw updateError;
+          if (updateError) throw updateError;
 
-        setMasterResults(prev =>
-          prev.map(r =>
-            r.id === existingResult.id ? { ...r, winner_song_id: songId } : r
-          )
-        );
-      } else {
-        // Insert new result
-        const { data: newResult, error: insertError } = await supabase
-          .from('master_results')
-          .insert({
-            season_id: activeSeason.id,
-            bracket_matchup_id: matchupId,
-            winner_song_id: songId,
-          })
-          .select()
-          .single();
+          setMasterResults(prev =>
+            prev.map(r =>
+              r.id === existingResult.id ? { ...r, winner_song_id: songId } : r
+            )
+          );
+        } else {
+          // Insert new result
+          const { data: newResult, error: insertError } = await supabase
+            .from('master_results')
+            .insert({
+              season_id: activeSeason.id,
+              bracket_matchup_id: matchupId,
+              winner_song_id: songId,
+            })
+            .select()
+            .single();
 
-        if (insertError) throw insertError;
-        setMasterResults(prev => [...prev, newResult as MasterResult]);
-      }
-
-      // Recalculate scores for all student brackets
-      // Fetch all student brackets for the active season
-      const { data: allBracketsData, error: bracketsError } = await supabase
-        .from('student_brackets')
-        .select('*')
-        .eq('season_id', activeSeason.id);
-
-      if (bracketsError) throw bracketsError;
-      const allBrackets = (allBracketsData || []) as StudentBracket[];
-
-      if (allBrackets.length === 0) {
-        return;
-      }
-
-      // Fetch all student picks for those brackets
-      const bracketIds = allBrackets.map(b => b.id);
-      const { data: allPicksData, error: picksError } = await supabase
-        .from('student_picks')
-        .select('*')
-        .in('student_bracket_id', bracketIds);
-
-      if (picksError) throw picksError;
-      const allPicks = (allPicksData || []) as StudentPick[];
-
-      // Fetch updated master results
-      const { data: updatedResultsData, error: resultsError } = await supabase
-        .from('master_results')
-        .select('*')
-        .eq('season_id', activeSeason.id);
-
-      if (resultsError) throw resultsError;
-      const updatedMasterResults = (updatedResultsData || []) as MasterResult[];
-
-      // Fetch students to build studentNames map
-      const studentIds = allBrackets.map(b => b.student_id);
-      const { data: studentsData, error: studentsError } = await supabase
-        .from('students')
-        .select('id, name')
-        .in('id', studentIds);
-
-      if (studentsError) throw studentsError;
-      const studentNames = new Map<UUID, string>();
-      (studentsData || []).forEach((s: any) => {
-        studentNames.set(s.id, s.name);
-      });
-
-      // Compute scores using computePerStudentScores
-      const scores = computePerStudentScores(
-        allBrackets,
-        allPicks,
-        updatedMasterResults,
-        matchups,
-        studentNames
-      );
-
-      // Update each bracket with computed score
-      for (const score of scores) {
-        const bracket = allBrackets.find(b => b.student_id === score.student_id);
-        if (bracket) {
-          const { error: updateScoreError } = await supabase.supabase
-            .from('student_brackets')
-            .update({ points: score.total_score })
-            .eq('id', bracket.id);
-
-          if (updateScoreError) throw updateScoreError;
+          if (insertError) throw insertError;
+          setMasterResults(prev => [...prev, newResult as MasterResult]);
         }
       }
+
+      // Propagate advancement to rounds 2-4
+      await propagateMasterAdvancement();
     } catch (err: any) {
       setError(err.message || 'Failed to save master result');
     } finally {
@@ -252,6 +316,14 @@ export default function MasterBracketPage() {
     <div>
       <h1>Master Bracket - {activeSeason.name}</h1>
       {error && <div>Error: {error}</div>}
+
+      <RapidEntryPanel
+        matchups={matchups}
+        songs={songs}
+        masterResults={masterResults}
+        onBatchUpdate={handleBatchMasterUpdate}
+        getValidOptionsForMatchup={(matchup) => getValidMasterOptionsForMatchup(matchup, matchups, masterResults)}
+      />
 
       {Array.from(matchupsByRound.entries())
         .sort(([a], [b]) => a - b)
