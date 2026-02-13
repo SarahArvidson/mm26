@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import {
@@ -23,6 +24,7 @@ import RoundAccuracyPie from '../components/charts/RoundAccuracyPie';
 
 export default function StudentBracketPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeSeason, setActiveSeason] = useState<Season | null>(null);
@@ -41,8 +43,25 @@ export default function StudentBracketPage() {
 
   useEffect(() => {
     if (!user) return;
-    loadData();
-  }, [user]);
+    
+    // Check if user is a teacher and redirect
+    const checkRole = async () => {
+      const { data: teacherData } = await supabase
+        .from('teachers')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle();
+      
+      if (teacherData) {
+        navigate('/teacher-dashboard');
+        return;
+      }
+      
+      loadData();
+    };
+    
+    checkRole();
+  }, [user, navigate]);
 
   const loadData = async () => {
     if (!user) return;
@@ -77,7 +96,8 @@ export default function StudentBracketPage() {
         .order('matchup_number', { ascending: true });
 
       if (matchupsError) throw matchupsError;
-      setMatchups((matchupsData || []) as BracketMatchup[]);
+      const matchupsTyped = (matchupsData || []) as BracketMatchup[];
+      setMatchups(matchupsTyped);
 
       // Fetch songs for active season
       const { data: songsData, error: songsError } = await supabase
@@ -86,7 +106,8 @@ export default function StudentBracketPage() {
         .eq('season_id', active.id);
 
       if (songsError) throw songsError;
-      setSongs((songsData || []) as Song[]);
+      const songsTyped = (songsData || []) as Song[];
+      setSongs(songsTyped);
 
       // Fetch or create student bracket
       const { data: bracketData, error: bracketError } = await supabase
@@ -188,7 +209,7 @@ export default function StudentBracketPage() {
         classBracketsDataTyped,
         allPicksDataTyped,
         masterResultsDataTyped,
-        matchups,
+        matchupsTyped,
         studentNames
       );
       const sortedLeaderboard = createLeaderboard(scores);
@@ -201,7 +222,7 @@ export default function StudentBracketPage() {
       const breakdown = computePerRoundBreakdown(
         studentPicks,
         masterResultsDataTyped,
-        matchups
+        matchupsTyped
       );
       setRoundBreakdown(breakdown);
     } catch (err: any) {
@@ -326,24 +347,82 @@ export default function StudentBracketPage() {
               const validOptions = getValidOptionsForMatchup(matchup, matchups, studentPicks);
               const currentPick = studentPicks.find(p => p.bracket_matchup_id === matchup.id);
               const currentSongId = currentPick?.picked_song_id || '';
+              const isDisabled = isFinalized || saving || validOptions.length === 0;
+
+              const handleCardClick = (songId: UUID) => {
+                if (!isDisabled) {
+                  handlePickChange(matchup.id, songId);
+                }
+              };
+
+              const handleKeyDown = (e: React.KeyboardEvent, songId: UUID) => {
+                if (!isDisabled && (e.key === 'Enter' || e.key === ' ')) {
+                  e.preventDefault();
+                  handlePickChange(matchup.id, songId);
+                }
+              };
 
               return (
-                <div key={matchup.id}>
-                  <label>
-                    Matchup {matchup.matchup_number}:
-                    <select
-                      value={currentSongId}
-                      onChange={(e) => handlePickChange(matchup.id, e.target.value)}
-                      disabled={isFinalized || saving || validOptions.length === 0}
-                    >
-                      <option value="">-- Select --</option>
-                      {validOptions.map(songId => (
-                        <option key={songId} value={songId}>
-                          {getSongLabel(songId)}
-                        </option>
-                      ))}
-                    </select>
+                <div key={matchup.id} style={{ marginBottom: '24px' }}>
+                  <label style={{
+                    display: 'block',
+                    marginBottom: '12px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#374151'
+                  }}>
+                    Matchup {matchup.matchup_number}
                   </label>
+                  <div style={{
+                    display: 'flex',
+                    gap: '16px',
+                    justifyContent: 'center',
+                    flexWrap: 'wrap'
+                  }}>
+                    {validOptions.map(songId => {
+                      const isSelected = songId === currentSongId;
+                      return (
+                        <div
+                          key={songId}
+                          role="button"
+                          tabIndex={isDisabled ? -1 : 0}
+                          onClick={() => handleCardClick(songId)}
+                          onKeyDown={(e) => handleKeyDown(e, songId)}
+                          style={{
+                            border: `2px solid ${isSelected ? '#7C3AED' : '#E5E7EB'}`,
+                            borderRadius: '8px',
+                            padding: '16px',
+                            minWidth: '240px',
+                            cursor: isDisabled ? 'not-allowed' : 'pointer',
+                            transition: 'all 0.15s ease',
+                            backgroundColor: isSelected ? 'rgba(124, 58, 237, 0.08)' : '#FFFFFF',
+                            opacity: isDisabled ? 0.5 : 1
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isDisabled && !isSelected) {
+                              e.currentTarget.style.borderColor = '#7C3AED';
+                              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isSelected) {
+                              e.currentTarget.style.borderColor = '#E5E7EB';
+                              e.currentTarget.style.boxShadow = 'none';
+                            }
+                          }}
+                        >
+                          <div style={{
+                            color: '#111827',
+                            fontSize: '14px',
+                            fontWeight: isSelected ? '600' : '400',
+                            textAlign: 'center'
+                          }}>
+                            {getSongLabel(songId)}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               );
             })}

@@ -1,7 +1,10 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 
 export default function LoginPage() {
+  const navigate = useNavigate();
   const [isTeacher, setIsTeacher] = useState(true);
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
@@ -20,8 +23,36 @@ export default function LoginPage() {
     const { error } = await signIn(email, password);
     if (error) {
       setError(error.message);
+      setLoading(false);
+      return;
     }
-    setLoading(false);
+
+    // Wait for auth state to update, then check role
+    setTimeout(async () => {
+      const { data: { session } } = await supabase.supabase.auth.getSession();
+      if (session?.user) {
+        // Check if user is admin
+        if (session.user.app_metadata?.role === 'admin') {
+          navigate('/master-bracket');
+          setLoading(false);
+          return;
+        }
+        
+        // Check if user is a teacher
+        const { data: teacherData } = await supabase
+          .from('teachers')
+          .select('id')
+          .eq('id', session.user.id)
+          .maybeSingle();
+        
+        if (teacherData) {
+          navigate('/teacher-dashboard');
+        } else {
+          setError('User not found in teachers table');
+        }
+      }
+      setLoading(false);
+    }, 100);
   };
 
   const handleStudentLogin = async (e: React.FormEvent) => {
@@ -34,8 +65,28 @@ export default function LoginPage() {
     const { error } = await signIn(studentEmail, password);
     if (error) {
       setError(error.message);
+      setLoading(false);
+      return;
     }
-    setLoading(false);
+
+    // Wait for auth state to update, then check role
+    setTimeout(async () => {
+      const { data: { session } } = await supabase.supabase.auth.getSession();
+      if (session?.user) {
+        const { data: studentData } = await supabase
+          .from('students')
+          .select('id')
+          .eq('id', session.user.id)
+          .maybeSingle();
+        
+        if (studentData) {
+          navigate('/student-bracket');
+        } else {
+          setError('User not found in students table');
+        }
+      }
+      setLoading(false);
+    }, 100);
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {

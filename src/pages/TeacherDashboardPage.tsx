@@ -234,137 +234,483 @@ export default function TeacherDashboardPage() {
       <h1>Teacher Dashboard - {activeSeason.name}</h1>
       {error && <div>Error: {error}</div>}
 
-      <div>
-        <label>
-          Select Class:
-          <select
-            value={selectedClassId || ''}
-            onChange={(e) => setSelectedClassId(e.target.value as UUID)}
-          >
-            <option value="">-- Select Class --</option>
-            {classes.map((cls) => (
-              <option key={cls.id} value={cls.id}>
-                {cls.name}
-              </option>
-            ))}
-          </select>
+      <div style={{
+        marginBottom: '24px',
+        padding: '20px',
+        border: '1px solid #E5E7EB',
+        borderRadius: '8px',
+        backgroundColor: '#FFFFFF',
+        maxWidth: '400px'
+      }}>
+        <label style={{
+          display: 'block',
+          fontWeight: '600',
+          color: '#374151',
+          marginBottom: '8px',
+          fontSize: '14px'
+        }}>
+          Select Class
         </label>
+        <select
+          value={selectedClassId || ''}
+          onChange={(e) => setSelectedClassId(e.target.value as UUID)}
+          style={{
+            width: '100%',
+            padding: '10px',
+            border: '1px solid #D1D5DB',
+            borderRadius: '6px',
+            backgroundColor: '#FFFFFF',
+            color: '#111827',
+            fontSize: '14px',
+            cursor: 'pointer'
+          }}
+          onFocus={(e) => {
+            e.target.style.borderColor = '#7C3AED';
+            e.target.style.boxShadow = '0 0 0 3px rgba(124, 58, 237, 0.1)';
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = '#D1D5DB';
+            e.target.style.boxShadow = 'none';
+          }}
+        >
+          <option value="">-- Select Class --</option>
+          {classes.map((cls) => (
+            <option key={cls.id} value={cls.id}>
+              {cls.name}
+            </option>
+          ))}
+        </select>
       </div>
 
-      {selectedClassId && activeSeason && leaderboard.length > 0 && (
+      {selectedClassId && activeSeason && (
         <>
-          {activeSeason && (
-            <EmbedGeneratorPanel seasonId={activeSeason.id} />
-          )}
-
-          <div style={{ marginBottom: '20px' }}>
-            <h3>Export Data</h3>
-            <button
-              onClick={() => {
-                if (activeSeason && selectedClassId) {
-                  const csv = exportVotesToCSV(
-                    classBrackets,
-                    allPicks,
-                    matchups,
-                    songs,
-                    classes.find(c => c.id === selectedClassId)?.name
-                  );
-                  downloadCSV(csv, `bracket-votes-${classes.find(c => c.id === selectedClassId)?.name || 'class'}-${activeSeason.name}.csv`);
-                }
-              }}
-              style={{ marginRight: '10px' }}
-            >
-              Export Class Votes (CSV)
-            </button>
-            <button
-              onClick={() => {
-                if (activeSeason) {
-                  const csv = exportVotesToCSV(
-                    teacherBrackets,
-                    teacherPicks,
-                    matchups,
-                    songs,
-                    'All Classes'
-                  );
-                  downloadCSV(csv, `bracket-votes-all-classes-${activeSeason.name}.csv`);
-                }
-              }}
-            >
-              Export All Classes Votes (CSV)
-            </button>
-          </div>
-
-          <div>
-            <h2>Class Leaderboard</h2>
-            <table>
-              <thead>
-                <tr>
-                  <th>Rank</th>
-                  <th>Name</th>
-                  <th>Total Score</th>
-                </tr>
-              </thead>
-              <tbody>
-                {leaderboard.map((score) => (
-                  <tr key={score.student_id}>
-                    <td>{score.rank}</td>
-                    <td>{score.student_name}</td>
-                    <td>{score.total_score}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div>
-            <h2>Analytics</h2>
-            
-            {activeSeason && matchups.length > 0 && masterResults.length > 0 && (
-              <div>
-                <h3>All Classes Combined</h3>
-                {[1, 2, 3, 4].map(round => (
-                  <RoundAccuracyPie
-                    key={round}
-                    round={round}
-                    classStudentBrackets={teacherBrackets}
-                    allStudentPicks={teacherPicks}
-                    masterResults={masterResults}
-                    allMatchups={matchups}
-                  />
-                ))}
+          {/* Section 1: Class Leaderboard */}
+          <div style={{
+            marginBottom: '32px',
+            padding: '20px',
+            border: '1px solid #E5E7EB',
+            borderRadius: '8px',
+            backgroundColor: '#FFFFFF'
+          }}>
+            <div style={{
+              maxWidth: '900px',
+              margin: '0 auto',
+              textAlign: 'center'
+            }}>
+              <h2 style={{
+                color: '#7C3AED',
+                marginTop: '0',
+                marginBottom: '16px',
+                fontSize: '24px',
+                fontWeight: '600'
+              }}>
+                Class Leaderboard
+              </h2>
+              <button
+                onClick={loadClassLeaderboard}
+                style={{
+                  marginBottom: '16px',
+                  padding: '8px 16px',
+                  backgroundColor: '#7C3AED',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  display: 'inline-block'
+                }}
+              >
+                Refresh Leaderboard
+              </button>
+              {leaderboard.length > 0 ? (
+                <div style={{ overflowX: 'auto', textAlign: 'left' }}>
+                  <table style={{
+                    width: '100%',
+                    borderCollapse: 'collapse',
+                    backgroundColor: '#FFFFFF',
+                    margin: '0 auto'
+                  }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#374151' }}>
+                      <th style={{
+                        padding: '12px',
+                        textAlign: 'left',
+                        color: '#FFFFFF',
+                        fontWeight: '600',
+                        fontSize: '14px'
+                      }}>
+                        Rank
+                      </th>
+                      <th style={{
+                        padding: '12px',
+                        textAlign: 'left',
+                        color: '#FFFFFF',
+                        fontWeight: '600',
+                        fontSize: '14px'
+                      }}>
+                        Name
+                      </th>
+                      <th style={{
+                        padding: '12px',
+                        textAlign: 'left',
+                        color: '#FFFFFF',
+                        fontWeight: '600',
+                        fontSize: '14px'
+                      }}>
+                        Total Score
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {leaderboard.map((score) => (
+                      <tr key={score.student_id} style={{
+                        borderBottom: '1px solid #E5E7EB'
+                      }}>
+                        <td style={{
+                          padding: '12px',
+                          color: '#111827',
+                          fontSize: '14px'
+                        }}>
+                          {score.rank}
+                        </td>
+                        <td style={{
+                          padding: '12px',
+                          color: '#111827',
+                          fontSize: '14px'
+                        }}>
+                          {score.student_name}
+                        </td>
+                        <td style={{
+                          padding: '12px',
+                          color: '#111827',
+                          fontSize: '14px',
+                          fontWeight: '600'
+                        }}>
+                          {score.total_score}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div style={{
+                padding: '16px',
+                backgroundColor: '#F9FAFB',
+                border: '1px solid #E5E7EB',
+                borderRadius: '6px',
+                color: '#6B7280',
+                fontSize: '14px'
+              }}>
+                No students have finalized their brackets yet.
               </div>
             )}
-
-            {Array.from(
-              new Set(matchups.map(m => m.round))
-            )
-              .sort((a, b) => a - b)
-              .map(round => {
-                const roundMatchups = matchups.filter(m => m.round === round);
-                return (
-                  <div key={round}>
-                    <RoundAccuracyPie
-                      round={round}
-                      classStudentBrackets={classBrackets}
-                      allStudentPicks={allPicks}
-                      masterResults={masterResults}
-                      allMatchups={matchups}
-                    />
-                    {roundMatchups.map(matchup => (
-                      <div key={matchup.id}>
-                        <h4>Matchup {matchup.matchup_number}</h4>
-                        <PredictionDistributionPie
-                          matchupId={matchup.id}
-                          classStudentBrackets={classBrackets}
-                          allStudentPicks={allPicks}
-                          songs={songs}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                );
-              })}
+            </div>
           </div>
+
+          {/* Section 2: Analytics */}
+          <div style={{
+            marginBottom: '32px'
+          }}>
+            <h2 style={{
+              color: '#7C3AED',
+              marginTop: '0',
+              marginBottom: '24px',
+              fontSize: '24px',
+              fontWeight: '600'
+            }}>
+              Analytics
+            </h2>
+            
+            {masterResults.length === 0 ? (
+              <div style={{
+                padding: '20px',
+                backgroundColor: '#F9FAFB',
+                border: '2px solid #E5E7EB',
+                borderRadius: '6px',
+                color: '#374151',
+                fontSize: '14px',
+                lineHeight: '1.5'
+              }}>
+                No master results available yet. Master bracket winners must be set before analytics can be displayed.
+              </div>
+            ) : (
+              <>
+                {/* Card A: All Classes Combined */}
+                {activeSeason && matchups.length > 0 && (
+                  <div style={{
+                    marginBottom: '24px',
+                    padding: '20px',
+                    border: '1px solid #E5E7EB',
+                    borderRadius: '8px',
+                    backgroundColor: '#FFFFFF'
+                  }}>
+                    <div style={{
+                      maxWidth: '900px',
+                      margin: '0 auto',
+                      textAlign: 'center'
+                    }}>
+                      <h3 style={{
+                        color: '#7C3AED',
+                        marginTop: '0',
+                        marginBottom: '20px',
+                        fontSize: '18px',
+                        fontWeight: '600'
+                      }}>
+                        All Classes Combined
+                      </h3>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                        gap: '20px'
+                      }}>
+                      {[1, 2, 3, 4].map(round => (
+                        <RoundAccuracyPie
+                          key={round}
+                          round={round}
+                          classStudentBrackets={teacherBrackets}
+                          allStudentPicks={teacherPicks}
+                          masterResults={masterResults}
+                          allMatchups={matchups}
+                        />
+                      ))}
+                    </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Card B: Selected Class */}
+                {selectedClassId && (
+                  <div style={{
+                    padding: '20px',
+                    border: '1px solid #E5E7EB',
+                    borderRadius: '8px',
+                    backgroundColor: '#FFFFFF'
+                  }}>
+                    <h3 style={{
+                      color: '#7C3AED',
+                      marginTop: '0',
+                      marginBottom: '20px',
+                      fontSize: '18px',
+                      fontWeight: '600'
+                    }}>
+                      Class: {classes.find(c => c.id === selectedClassId)?.name || 'Selected Class'}
+                    </h3>
+                    
+                    {/* Round Accuracy Charts */}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                      gap: '20px',
+                      marginBottom: '32px'
+                    }}>
+                      {Array.from(
+                        new Set(matchups.map(m => m.round))
+                      )
+                        .sort((a, b) => a - b)
+                        .map(round => (
+                          <RoundAccuracyPie
+                            key={round}
+                            round={round}
+                            classStudentBrackets={classBrackets}
+                            allStudentPicks={allPicks}
+                            masterResults={masterResults}
+                            allMatchups={matchups}
+                          />
+                        ))}
+                      </div>
+
+                      {/* Divider */}
+                      <div style={{
+                        borderTop: '1px solid #E5E7EB',
+                        marginBottom: '24px'
+                      }} />
+
+                      {/* Prediction Distribution Subsection */}
+                      <div>
+                        <h4 style={{
+                          color: '#374151',
+                          marginTop: '0',
+                          marginBottom: '20px',
+                          fontSize: '16px',
+                          fontWeight: '600'
+                        }}>
+                          Prediction Distribution by Matchup
+                        </h4>
+                      {Array.from(
+                        new Set(matchups.map(m => m.round))
+                      )
+                        .sort((a, b) => a - b)
+                        .map(round => {
+                          const roundMatchups = matchups.filter(m => m.round === round);
+                          return (
+                            <div key={round} style={{ marginBottom: '24px' }}>
+                              {roundMatchups.map(matchup => (
+                                <div key={matchup.id} style={{ marginBottom: '20px' }}>
+                                  <h5 style={{
+                                    color: '#374151',
+                                    marginBottom: '12px',
+                                    fontSize: '14px',
+                                    fontWeight: '600'
+                                  }}>
+                                    Matchup {matchup.matchup_number}
+                                  </h5>
+                                  <PredictionDistributionPie
+                                    matchupId={matchup.id}
+                                    classStudentBrackets={classBrackets}
+                                    allStudentPicks={allPicks}
+                                    songs={songs}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Section 3: Export Data */}
+          <div style={{
+            marginBottom: '32px',
+            padding: '20px',
+            border: '1px solid #E5E7EB',
+            borderRadius: '8px',
+            backgroundColor: '#FFFFFF'
+          }}>
+            <div style={{
+              maxWidth: '900px',
+              margin: '0 auto',
+              textAlign: 'center'
+            }}>
+              <h3 style={{
+                color: '#7C3AED',
+                marginTop: '0',
+                marginBottom: '16px',
+                fontSize: '18px',
+                fontWeight: '600'
+              }}>
+                Export Data
+              </h3>
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <button
+                onClick={() => {
+                  if (activeSeason && selectedClassId) {
+                    const csv = exportVotesToCSV(
+                      classBrackets,
+                      allPicks,
+                      matchups,
+                      songs,
+                      classes.find(c => c.id === selectedClassId)?.name
+                    );
+                    downloadCSV(csv, `bracket-votes-${classes.find(c => c.id === selectedClassId)?.name || 'class'}-${activeSeason.name}.csv`);
+                  }
+                }}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#7C3AED',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}
+              >
+                Export Class Votes (CSV)
+              </button>
+              <button
+                onClick={() => {
+                  if (activeSeason) {
+                    const csv = exportVotesToCSV(
+                      teacherBrackets,
+                      teacherPicks,
+                      matchups,
+                      songs,
+                      'All Classes'
+                    );
+                    downloadCSV(csv, `bracket-votes-all-classes-${activeSeason.name}.csv`);
+                  }
+                }}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#7C3AED',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}
+              >
+                Export All Classes Votes (CSV)
+              </button>
+            </div>
+
+            <div style={{
+              height: '1px',
+              backgroundColor: '#E5E7EB',
+              margin: '20px 0'
+            }} />
+
+            <div>
+              <h4 style={{
+                marginBottom: '12px',
+                color: '#374151',
+                fontWeight: 600,
+                fontSize: '16px'
+              }}>
+                Printable Resources
+              </h4>
+              <a
+                href="/manie-musicale-2026-bracket.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ textDecoration: 'none' }}
+              >
+                <button
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    color: '#7C3AED',
+                    border: '1px solid #7C3AED',
+                    borderRadius: '6px',
+                    padding: '10px 16px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500'
+                  }}
+                >
+                  Open Blank Bracket (PDF)
+                </button>
+              </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 4: Embed Generator */}
+          {activeSeason && (
+            <div style={{
+              padding: '20px',
+              border: '1px solid #E5E7EB',
+              borderRadius: '8px',
+              backgroundColor: '#F9FAFB'
+            }}>
+              <h3 style={{
+                color: '#6B7280',
+                marginTop: '0',
+                marginBottom: '12px',
+                fontSize: '16px',
+                fontWeight: '500'
+              }}>
+                Embed Generator (Optional)
+              </h3>
+              <EmbedGeneratorPanel seasonId={activeSeason.id} />
+            </div>
+          )}
         </>
       )}
     </div>

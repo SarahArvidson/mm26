@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import { Link, Outlet } from 'react-router-dom';
+import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Layout() {
+  const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
 
   const handleLogout = async () => {
     await signOut();
     setMenuOpen(false);
+    navigate('/login');
   };
 
   return (
