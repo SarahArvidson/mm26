@@ -10,7 +10,7 @@ interface RoundAccuracyPieProps {
   allMatchups: BracketMatchup[];
 }
 
-const COLORS = ['#00C49F', '#FF8042'];
+const COLORS = ['#10B981', '#F97316'];
 
 export default function RoundAccuracyPie({
   round,
@@ -49,7 +49,8 @@ export default function RoundAccuracyPie({
   ];
 
   if (total === 0) {
-    return <div>No predictions yet for Round {round}</div>;
+    const roundLabel = round === 4 ? 'Championnat' : round === 1 ? '1er tour' : round === 2 ? '2e tour' : '3e tour';
+    return <div>Aucune prédiction pour {roundLabel}</div>;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -75,10 +76,26 @@ export default function RoundAccuracyPie({
     );
   };
 
+  const isChampionnat = round === 4;
+  const roundLabel = isChampionnat ? '🏆 Championnat – Le gagnant de la Manie musicale 2026' : round === 1 ? '1er tour' : round === 2 ? '2e tour' : '3e tour';
+
   return (
     <div>
-      <h3>Round {round} Accuracy</h3>
-      <ResponsiveContainer width="100%" height={300}>
+      {isChampionnat ? (
+        <h3 style={{
+          fontSize: '20px',
+          fontWeight: 700,
+          color: '#B45309',
+          marginBottom: '16px'
+        }}>
+          {roundLabel}
+        </h3>
+      ) : (
+        <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>
+          {roundLabel}
+        </h3>
+      )}
+      <ResponsiveContainer width="100%" height={isChampionnat ? 414 : 300}>
         <PieChart>
           <Pie
             data={data}
@@ -86,7 +103,7 @@ export default function RoundAccuracyPie({
             cy="50%"
             labelLine={false}
             label={renderCustomizedLabel}
-            outerRadius={80}
+            outerRadius={isChampionnat ? 109 : 80}
             fill="#8884d8"
             dataKey="value"
           >

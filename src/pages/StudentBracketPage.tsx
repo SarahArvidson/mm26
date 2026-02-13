@@ -42,7 +42,17 @@ export default function StudentBracketPage() {
   const [masterResults, setMasterResults] = useState<MasterResult[]>([]);
   const [recentlySelected, setRecentlySelected] = useState<{ id: string; key: number } | null>(null);
   const [confirmingFinalize, setConfirmingFinalize] = useState(false);
+  const [viewMode, setViewMode] = useState<'lobby' | 'bracket'>('lobby');
+  const [messageIndex, setMessageIndex] = useState(0);
+  const [perfPop, setPerfPop] = useState(false);
+  const [perfBurstKey, setPerfBurstKey] = useState(0);
+  const [perfBump, setPerfBump] = useState(false);
+  const [displayRank, setDisplayRank] = useState(0);
+  const [isCounting, setIsCounting] = useState(false);
+  const [isStatementActive, setIsStatementActive] = useState(false);
   const popTimerRef = useRef<number | null>(null);
+  const countIntervalRef = useRef<number | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -50,8 +60,47 @@ export default function StudentBracketPage() {
       if (popTimerRef.current !== null) {
         clearTimeout(popTimerRef.current);
       }
+      if (countIntervalRef.current !== null) {
+        clearInterval(countIntervalRef.current);
+      }
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
     };
   }, []);
+
+  // Compute performance messages for cycling
+  const totalStudents = leaderboard.length;
+  const percentile = totalStudents > 0 && studentRank > 0
+    ? Math.round((1 - (studentRank - 1) / totalStudents) * 100)
+    : 0;
+  const performanceMessages: string[] = [];
+  if (studentRank === 1 && totalStudents > 0) {
+    performanceMessages.push(
+      `Tu es 1er sur ${totalStudents} élèves`,
+      "Tu domines le classement",
+      "Tout le monde te poursuit"
+    );
+  } else if (percentile >= 75) {
+    performanceMessages.push(
+      `Tu es dans le top ${100 - percentile}% de la classe`,
+      "Encore quelques points pour atteindre la première place",
+      "Très proche du sommet"
+    );
+  } else if (percentile >= 50) {
+    performanceMessages.push(
+      "Tu es dans la première moitié de la classe",
+      "Continue comme ça",
+      "Tu progresses"
+    );
+  } else {
+    performanceMessages.push(
+      "La compétition continue",
+      "Chaque tour peut tout changer",
+      "Rien n'est joué"
+    );
+  }
+
 
   useEffect(() => {
     if (!user) return;
@@ -345,13 +394,516 @@ export default function StudentBracketPage() {
   const matchupsByRound = getMatchupsByRound();
   const isFinalized = studentBracket?.finalized || false;
 
-  return (
-    <div>
-      <h1>Student Bracket - {activeSeason.name}</h1>
-      {error && <div>Error: {error}</div>}
-      {isFinalized && <div>This bracket has been finalized and cannot be edited.</div>}
+  // Handle performance card click to cycle messages
+  const handlePerformanceClick = () => {
+    setMessageIndex(prev =>
+      (prev + 1) % performanceMessages.length
+    );
 
-      {Array.from(matchupsByRound.entries())
+    // Trigger burst remount for reliable replay
+    setPerfBurstKey(prev => prev + 1);
+    setPerfPop(true);
+
+    // Card jump animation
+    setPerfBump(true);
+    setTimeout(() => {
+      setPerfBump(false);
+    }, 160);
+
+    // Highlight contextual statement
+    setIsStatementActive(true);
+    setTimeout(() => {
+      setIsStatementActive(false);
+    }, 2000);
+
+    // Clear any existing count interval
+    if (countIntervalRef.current !== null) {
+      clearInterval(countIntervalRef.current);
+    }
+
+    // Start rank count-down animation (100 → studentRank)
+    if (studentRank > 0) {
+      setIsCounting(true);
+      setDisplayRank(100);
+
+      const startTime = Date.now();
+      const duration = 1000; // 1000ms
+      const startValue = 100;
+      const endValue = studentRank;
+
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        // Smooth easing function (ease-out)
+        const eased = 1 - Math.pow(1 - progress, 3);
+        
+        const current = Math.round(startValue - (startValue - endValue) * eased);
+        setDisplayRank(current);
+
+        if (progress < 1) {
+          animationFrameRef.current = requestAnimationFrame(animate) as unknown as number;
+        } else {
+          setDisplayRank(endValue);
+          setIsCounting(false);
+          animationFrameRef.current = null;
+        }
+      };
+
+      animationFrameRef.current = requestAnimationFrame(animate) as unknown as number;
+    }
+
+    setTimeout(() => {
+      setPerfPop(false);
+    }, 1200);
+  };
+
+  // Compute performance tier (using values computed above)
+  let tierLabel = "🎶 Toujours en jeu";
+  if (studentRank === 1) {
+    tierLabel = "👑 Grande star";
+  } else if (percentile >= 75) {
+    tierLabel = "🎤 Sur scène";
+  } else if (percentile >= 50) {
+    tierLabel = "🎼 Bon rythme";
+  } else {
+    tierLabel = "🎵 Bonne oreille";
+  }
+
+  return (
+    <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '20px' }}>
+      <h1 style={{
+        fontSize: '40px',
+        fontWeight: 700,
+        marginBottom: '32px'
+      }}>
+        🎵 Tableaumanie 2026
+      </h1>
+      <p style={{
+        fontSize: '16px',
+        color: '#6B7280',
+        marginTop: '-16px',
+        marginBottom: '40px'
+      }}>
+        Ton tableau et ta performance
+      </p>
+      {error && <div style={{ color: '#DC2626', marginBottom: '16px' }}>Error: {error}</div>}
+      
+      {viewMode === 'lobby' && (
+        <>
+          {/* Top Row: Bracket Action Card + Performance Snapshot */}
+          <div style={{ display: 'flex', gap: '24px', alignItems: 'stretch', marginBottom: '48px', flexWrap: 'wrap' }}>
+            {/* Bracket Action Card */}
+            <div
+              role={isFinalized ? "button" : undefined}
+              tabIndex={isFinalized ? 0 : undefined}
+              aria-label={isFinalized ? "Voir ton tableau" : undefined}
+              style={{
+                flex: 1,
+                minWidth: '300px',
+                padding: '32px',
+                borderRadius: '20px',
+                boxShadow: '0 6px 20px rgba(0,0,0,0.06)',
+                border: '1px solid #E5E7EB',
+                backgroundColor: '#FFFFFF',
+                cursor: isFinalized ? 'pointer' : 'default',
+                transition: 'all 200ms ease',
+                outline: 'none'
+              }}
+              onMouseEnter={(e) => {
+                if (isFinalized) {
+                  e.currentTarget.style.transform = 'scale(1.02)';
+                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.1)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (isFinalized) {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.06)';
+                }
+              }}
+              onFocus={(e) => {
+                if (isFinalized) {
+                  e.currentTarget.style.outline = '2px solid #7C3AED';
+                  e.currentTarget.style.outlineOffset = '2px';
+                }
+              }}
+              onBlur={(e) => {
+                if (isFinalized) {
+                  e.currentTarget.style.outline = 'none';
+                }
+              }}
+              onKeyDown={(e) => {
+                if (isFinalized && (e.key === 'Enter' || e.key === ' ')) {
+                  e.preventDefault();
+                  setViewMode('bracket');
+                }
+              }}
+              onClick={() => setViewMode('bracket')}
+            >
+              <h2 style={{ marginTop: 0, marginBottom: '12px', color: '#7C3AED', fontSize: '20px', textAlign: 'center' }}>
+                {isFinalized 
+                  ? '🎼 Ton tableau'
+                  : '🎧 Crée ton tableau'}
+              </h2>
+              <p style={{ color: '#6B7280', marginBottom: '16px', fontSize: '14px', textAlign: 'center' }}>
+                {isFinalized 
+                  ? 'Tes choix sont enregistrés'
+                  : 'Choisis les gagnants pour chaque match'}
+              </p>
+              {isFinalized && (
+                <div style={{
+                  textAlign: 'left',
+                  marginTop: '16px'
+                }}>
+                  <div style={{
+                    marginBottom: '16px',
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                    gap: '8px',
+                    fontSize: '13px',
+                    color: '#374151'
+                  }}>
+                    {matchups
+                      .filter(m => m.matchup_number <= 15)
+                      .sort((a, b) => a.matchup_number - b.matchup_number)
+                      .map(matchup => {
+                        const pick = studentPicks.find(p => p.bracket_matchup_id === matchup.id);
+                        const songLabel = pick ? getSongLabel(pick.picked_song_id) : '';
+                        const isWinner = matchup.matchup_number === 15;
+                        return (
+                          <div
+                            key={matchup.id}
+                            style={{
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            {isWinner ? (
+                              <span style={{ fontWeight: '600', color: '#6D28D9' }}>
+                                ⭐ Le gagnant – {songLabel}
+                              </span>
+                            ) : (
+                              <span>
+                                {matchup.matchup_number} – {songLabel}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
+              {!isFinalized && (
+                <button
+                  style={{
+                    backgroundColor: '#7C3AED',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '12px 24px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    width: '100%'
+                  }}
+                >
+                  Commencer
+                </button>
+              )}
+              {isFinalized && (
+                <p style={{
+                  fontSize: '13px',
+                  color: '#6B7280',
+                  marginTop: '12px',
+                  marginBottom: 0
+                }}>
+                  Clique pour voir ton tableau complet
+                </p>
+              )}
+            </div>
+
+            {/* Performance Snapshot Card */}
+            <div
+              role="button"
+              tabIndex={0}
+              className="perf-card"
+              style={{
+                flex: 1,
+                minWidth: '300px',
+                padding: '32px',
+                borderRadius: '20px',
+                boxShadow: perfPop ? '0 8px 24px rgba(0,0,0,0.1)' : '0 6px 20px rgba(0,0,0,0.06)',
+                backgroundColor: '#FFFFFF',
+                border: '1px solid #E5E7EB',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                textAlign: 'center',
+                cursor: 'pointer',
+                transform: perfBump ? 'translateY(-6px) scale(1.02)' : 'scale(1)',
+                transition: 'all 200ms ease'
+              }}
+              onMouseEnter={(e) => {
+                if (!perfBump) {
+                  e.currentTarget.style.transform = 'scale(1.02)';
+                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.1)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!perfBump) {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.06)';
+                }
+              }}
+              onClick={handlePerformanceClick}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handlePerformanceClick();
+                }
+              }}
+            >
+              {perfPop && (
+                <div key={perfBurstKey} className="perf-burst" aria-hidden="true">
+                  <div className="perf-notes-layer">
+                    {["♪","♫","♬","♪","♫","♬"].map((note, i) => {
+                      const colors = ["#7C3AED","#10B981","#3B82F6","#EF4444","#8B5CF6","#22D3EE"];
+                      const leftPositions = [18, 30, 42, 54, 66, 78];
+                      return (
+                        <span
+                          key={i}
+                          className="perf-note"
+                          style={{
+                            left: `${leftPositions[i]}%`,
+                            '--noteColor': colors[i % colors.length],
+                            '--driftX': `${(i % 3 - 1) * 8}px`,
+                            animationDelay: `${i * 70}ms`
+                          } as React.CSSProperties}
+                        >
+                          {note}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              <div className="perf-content">
+                <h2 style={{ marginTop: 0, marginBottom: '24px', fontSize: '18px', color: '#111827' }}>
+                  🎯 Ta performance
+                </h2>
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{ fontSize: '48px', fontWeight: 700, color: '#111827' }}>
+                  {studentRank > 0 ? `#${isCounting ? displayRank : studentRank}` : '—'}
+                </div>
+                {studentRank > 0 && (
+                  <div style={{
+                    marginTop: '12px',
+                    padding: '8px 12px',
+                    backgroundColor: '#F5F3FF',
+                    borderRadius: '8px',
+                    display: 'inline-block'
+                  }}>
+                    <p style={{
+                      margin: 0,
+                      fontSize: '16px',
+                      fontWeight: '700',
+                      color: '#7C3AED',
+                      letterSpacing: '0.5px'
+                    }}>
+                      {tierLabel}
+                    </p>
+                  </div>
+                )}
+                {performanceMessages.length > 0 && (
+                  <>
+                    <p style={{
+                      marginTop: '12px',
+                      marginBottom: '0px',
+                      fontWeight: isStatementActive ? 700 : 500,
+                      fontSize: '14px',
+                      color: isStatementActive ? '#2563EB' : '#6B7280',
+                      transform: isStatementActive ? 'scale(1.04)' : 'scale(1)',
+                      transition: 'color 200ms ease, transform 200ms ease, font-weight 200ms ease',
+                      minHeight: '20px'
+                    }}>
+                      {performanceMessages[messageIndex]}
+                    </p>
+                  </>
+                )}
+                <div style={{ fontSize: '20px', marginTop: '16px', color: '#111827' }}>
+                  {studentBracket?.points ?? 0} points
+                </div>
+              </div>
+              <div>
+                <p style={{ margin: '4px 0 8px 0', fontSize: '14px', color: '#6B7280' }}>Par tour</p>
+                {roundBreakdown.map(({ round, score }) => {
+                  const roundLabel = round === 1 ? '1er tour' : round === 2 ? '2e tour' : round === 3 ? '3e tour' : 'Championnat';
+                  return (
+                    <div key={round} style={{ marginBottom: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '12px', color: '#374151' }}>{roundLabel}</span>
+                        <span style={{ fontSize: '12px', fontWeight: '600', color: '#111827' }}>{score}</span>
+                      </div>
+                      <div style={{
+                        height: '6px',
+                        backgroundColor: '#E5E7EB',
+                        borderRadius: '3px',
+                        overflow: 'hidden'
+                      }}>
+                        <div style={{
+                          height: '100%',
+                          width: `${Math.min((score / Math.max(studentBracket?.points ?? 1, 1)) * 100, 100)}%`,
+                          backgroundColor: '#7C3AED',
+                          transition: 'width 300ms ease'
+                        }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Class Leaderboard + Accuracy Section */}
+          <div style={{
+            background: '#FFFFFF',
+            borderRadius: '16px',
+            padding: '32px',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.04)',
+            marginTop: '32px'
+          }}>
+            <h2 style={{ marginBottom: '16px', fontSize: '20px', color: '#111827' }}>📊 Classement de la classe</h2>
+            <div style={{
+              border: '1px solid #E5E7EB',
+              borderRadius: '12px',
+              overflow: 'hidden',
+              backgroundColor: '#FFFFFF'
+            }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '2px solid #E5E7EB' }}>
+                    <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Rang</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Nom</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Points</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {leaderboard.map((score, index) => {
+                    const isCurrentStudent = score.student_id === user?.id;
+                    const isTopThree = index < 3;
+                    return (
+                      <tr
+                        key={score.student_id}
+                        style={{
+                          backgroundColor: isCurrentStudent 
+                            ? '#F5F3FF' 
+                            : isTopThree 
+                              ? '#F9FAFB' 
+                              : '#FFFFFF',
+                          borderBottom: index < leaderboard.length - 1 ? '1px solid #E5E7EB' : 'none',
+                          fontWeight: isCurrentStudent ? '600' : '400'
+                        }}
+                      >
+                        <td style={{ padding: '12px 16px', textAlign: 'center', color: '#111827', fontSize: '14px' }}>{score.rank}</td>
+                        <td style={{ padding: '12px 16px', textAlign: 'center', color: '#111827', fontSize: '14px' }}>{score.student_name}</td>
+                        <td style={{ padding: '12px 16px', textAlign: 'center', color: '#111827', fontSize: '14px' }}>{score.total_score}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Class Accuracy by Round Section */}
+            {classBrackets.length > 0 && allPicks.length > 0 && masterResults.length > 0 && (
+              <div style={{ marginTop: '48px' }}>
+                <h2 style={{ fontSize: '24px', marginBottom: '8px', color: '#111827', textAlign: 'center' }}>📊 Réussite de la classe</h2>
+                <p style={{
+                  fontSize: '14px',
+                  opacity: 0.7,
+                  marginBottom: '16px',
+                  textAlign: 'center',
+                  color: '#6B7280'
+                }}>
+                  Pourcentage d'élèves ayant deviné correctement à chaque tour
+                </p>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                gap: '24px'
+              }}>
+                {Array.from(new Set(matchups.map(m => m.round)))
+                  .sort((a, b) => a - b)
+                  .map(round => {
+                    const isWinner = round === 4;
+                    return (
+                      <div
+                        key={round}
+                        style={{
+                          marginBottom: '24px',
+                          gridColumn: isWinner ? '1 / -1' : 'auto'
+                        }}
+                      >
+                        {isWinner ? (
+                          <div style={{
+                            border: '2px solid #FACC15',
+                            borderRadius: '16px',
+                            padding: '24px',
+                            marginTop: '24px',
+                            background: 'linear-gradient(to bottom, #FFFBEB, #FFFFFF)',
+                            animation: 'championGlow 4s ease-in-out infinite'
+                          }}>
+                            <RoundAccuracyPie
+                              round={round}
+                              classStudentBrackets={classBrackets}
+                              allStudentPicks={allPicks}
+                              masterResults={masterResults}
+                              allMatchups={matchups}
+                            />
+                          </div>
+                        ) : (
+                          <RoundAccuracyPie
+                            round={round}
+                            classStudentBrackets={classBrackets}
+                            allStudentPicks={allPicks}
+                            masterResults={masterResults}
+                            allMatchups={matchups}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {viewMode === 'bracket' && (
+        <>
+          <button
+            onClick={() => setViewMode('lobby')}
+            style={{
+              backgroundColor: '#F3F4F6',
+              color: '#111827',
+              border: '1px solid #D1D5DB',
+              borderRadius: '8px',
+              padding: '10px 16px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              marginBottom: '24px'
+            }}
+          >
+            ⬅ Retour
+          </button>
+          {isFinalized && <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: '8px', color: '#92400E' }}>This bracket has been finalized and cannot be edited.</div>}
+
+          {Array.from(matchupsByRound.entries())
         .sort(([a], [b]) => a - b)
         .map(([round, roundMatchups]) => (
           <div key={round}>
@@ -686,69 +1238,7 @@ export default function StudentBracketPage() {
           Bracket finalized successfully. Your picks are locked.
         </div>
       )}
-
-      <div>
-        <h2>Your Ranking</h2>
-        <p>Rank: {studentRank > 0 ? `#${studentRank}` : 'Not ranked'}</p>
-       <p>Total Score: {studentBracket?.points ?? 0}</p>
-        
-        <h3>Per-Round Breakdown</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Round</th>
-              <th>Score</th>
-            </tr>
-          </thead>
-          <tbody>
-            {roundBreakdown.map(({ round, score }) => (
-              <tr key={round}>
-                <td>Round {round}</td>
-                <td>{score}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div>
-        <h2>Class Leaderboard</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Rank</th>
-              <th>Name</th>
-              <th>Total Score</th>
-            </tr>
-          </thead>
-          <tbody>
-            {leaderboard.map((score) => (
-              <tr key={score.student_id}>
-                <td>{score.rank}</td>
-                <td>{score.student_name}</td>
-                <td>{score.total_score}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {classBrackets.length > 0 && allPicks.length > 0 && masterResults.length > 0 && (
-        <div>
-          <h2>Class Accuracy by Round</h2>
-          {Array.from(new Set(matchups.map(m => m.round)))
-            .sort((a, b) => a - b)
-            .map(round => (
-              <RoundAccuracyPie
-                key={round}
-                round={round}
-                classStudentBrackets={classBrackets}
-                allStudentPicks={allPicks}
-                masterResults={masterResults}
-                allMatchups={matchups}
-              />
-            ))}
-        </div>
+        </>
       )}
     </div>
   );

@@ -1,3 +1,8 @@
+body {
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(to bottom, #F9FAFB 0%, #F3F4F6 100%);
+}
+
 #root {
   max-width: 1280px;
   margin: 0 auto;
@@ -90,6 +95,20 @@
   }
 }
 
+@keyframes perfNoteRise {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 20px) translateX(var(--driftX, 0px));
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -260px) translateX(var(--driftX, 0px));
+  }
+}
+
 .sparkle-burst {
   position: absolute;
   inset: 0;
@@ -151,6 +170,51 @@
     0 0 22px rgba(255,255,255,0.6);
 }
 
+.perf-card {
+  position: relative;
+  overflow: visible;
+}
+
+.perf-burst {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.perf-content {
+  position: relative;
+  z-index: 2;
+}
+
+.perf-notes-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.perf-note {
+  position: absolute;
+  bottom: 10px;
+  font-size: 22px;
+  font-weight: bold;
+  color: var(--noteColor, #7C3AED);
+  animation: perfNoteRise 1200ms ease-out forwards;
+  pointer-events: none;
+  will-change: transform, opacity;
+  text-shadow:
+    0 0 6px currentColor,
+    0 0 14px currentColor,
+    0 0 22px rgba(255,255,255,0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .perf-note {
+    animation: none;
+    opacity: 0;
+  }
+}
+
 @keyframes finalizePulse {
   0% {
     box-shadow: 0 6px 20px rgba(220, 38, 38, 0.35);
@@ -160,5 +224,17 @@
   }
   100% {
     box-shadow: 0 6px 20px rgba(220, 38, 38, 0.35);
+  }
+}
+
+@keyframes championGlow {
+  0% {
+    box-shadow: 0 0 18px rgba(255, 215, 0, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 36px rgba(255, 215, 0, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 18px rgba(255, 215, 0, 0.2);
   }
 }
