@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -40,6 +40,18 @@ export default function StudentBracketPage() {
   const [classBrackets, setClassBrackets] = useState<StudentBracket[]>([]);
   const [allPicks, setAllPicks] = useState<StudentPick[]>([]);
   const [masterResults, setMasterResults] = useState<MasterResult[]>([]);
+  const [recentlySelected, setRecentlySelected] = useState<{ id: string; key: number } | null>(null);
+  const [confirmingFinalize, setConfirmingFinalize] = useState(false);
+  const popTimerRef = useRef<number | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (popTimerRef.current !== null) {
+        clearTimeout(popTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -292,6 +304,7 @@ export default function StudentBracketPage() {
       if (updateError) throw updateError;
 
       setStudentBracket(prev => prev ? { ...prev, finalized: true } : null);
+      setConfirmingFinalize(false);
     } catch (err: any) {
       setError(err.message || 'Failed to finalize bracket');
     } finally {
@@ -351,14 +364,40 @@ export default function StudentBracketPage() {
 
               const handleCardClick = (songId: UUID) => {
                 if (!isDisabled) {
+                  // Clear any existing timeout
+                  if (popTimerRef.current !== null) {
+                    clearTimeout(popTimerRef.current);
+                  }
+                  setRecentlySelected({
+                    id: songId,
+                    key: Date.now()
+                  });
                   handlePickChange(matchup.id, songId);
+                  // Clear after animation completes
+                  popTimerRef.current = window.setTimeout(() => {
+                    setRecentlySelected(null);
+                    popTimerRef.current = null;
+                  }, 900000);
                 }
               };
 
               const handleKeyDown = (e: React.KeyboardEvent, songId: UUID) => {
                 if (!isDisabled && (e.key === 'Enter' || e.key === ' ')) {
                   e.preventDefault();
+                  // Clear any existing timeout
+                  if (popTimerRef.current !== null) {
+                    clearTimeout(popTimerRef.current);
+                  }
+                  setRecentlySelected({
+                    id: songId,
+                    key: Date.now()
+                  });
                   handlePickChange(matchup.id, songId);
+                  // Clear after animation completes
+                  popTimerRef.current = window.setTimeout(() => {
+                    setRecentlySelected(null);
+                    popTimerRef.current = null;
+                  }, 900000);
                 }
               };
 
@@ -376,50 +415,163 @@ export default function StudentBracketPage() {
                   <div style={{
                     display: 'flex',
                     gap: '16px',
+                    maxWidth: '700px',
+                    margin: '0 auto',
                     justifyContent: 'center',
-                    flexWrap: 'wrap'
+                    alignItems: 'stretch'
                   }}>
                     {validOptions.map(songId => {
                       const isSelected = songId === currentSongId;
+                      const isEliminated =
+                        !!currentSongId && songId !== currentSongId;
+                      const isRecentlySelected =
+                        recentlySelected?.id === songId && !isDisabled && !isFinalized && !isEliminated;
                       return (
-                        <div
+                        <button
                           key={songId}
-                          role="button"
-                          tabIndex={isDisabled ? -1 : 0}
+                          type="button"
+                          disabled={isDisabled}
                           onClick={() => handleCardClick(songId)}
                           onKeyDown={(e) => handleKeyDown(e, songId)}
+                          aria-pressed={isSelected}
                           style={{
-                            border: `2px solid ${isSelected ? '#7C3AED' : '#E5E7EB'}`,
-                            borderRadius: '8px',
+                            flex: 1,
+                            minHeight: '56px',
                             padding: '16px',
-                            minWidth: '240px',
-                            cursor: isDisabled ? 'not-allowed' : 'pointer',
-                            transition: 'all 0.15s ease',
-                            backgroundColor: isSelected ? 'rgba(124, 58, 237, 0.08)' : '#FFFFFF',
-                            opacity: isDisabled ? 0.5 : 1
+                            borderRadius: '8px',
+                            textAlign: 'center',
+                            wordWrap: 'break-word',
+                            whiteSpace: 'normal',
+                            fontSize: '14px',
+                            border: isEliminated 
+                              ? '1px solid #E5E7EB'
+                              : isSelected 
+                                ? '2px solid #7C3AED' 
+                                : '1px solid #D1D5DB',
+                            backgroundColor: isEliminated 
+                              ? '#F3F4F6'
+                              : isSelected 
+                                ? '#F5F3FF' 
+                                : '#FFFFFF',
+                            color: '#111827',
+                            cursor: isEliminated || isDisabled ? 'default' : 'pointer',
+                            opacity: isEliminated 
+                              ? 0.7
+                              : isDisabled 
+                                ? 0.6 
+                                : 1,
+                            boxShadow: isEliminated
+                              ? 'none'
+                              : isSelected && !isDisabled
+                                ? '0 0 0 2px #7C3AED, 0 0 20px rgba(124, 58, 237, 0.45)'
+                                : isRecentlySelected 
+                                  ? '0 0 0 4px rgba(124, 58, 237, 0.3)' 
+                                  : 'none',
+                            fontWeight: isEliminated 
+                              ? '400'
+                              : isSelected 
+                                ? '600' 
+                                : '400',
+                            transform: isRecentlySelected ? 'scale(1.15)' : 'scale(1)',
+                            transition: isRecentlySelected
+                              ? 'transform 120ms cubic-bezier(.34,1.56,.64,1)'
+                              : 'transform 150ms ease, box-shadow 200ms ease',
+                            position: 'relative',
+                            overflow: 'visible',
+                            zIndex: isSelected || isRecentlySelected ? 10 : 1,
+                            isolation: 'isolate',
+                            animation:
+                              isEliminated
+                                ? undefined
+                                : isRecentlySelected
+                                  ? undefined
+                                  : isSelected && !isDisabled
+                                    ? 'winnerPulse 2.5s ease-in-out infinite'
+                                    : undefined
                           }}
                           onMouseEnter={(e) => {
-                            if (!isDisabled && !isSelected) {
+                            if (!isDisabled && !isSelected && !isEliminated) {
                               e.currentTarget.style.borderColor = '#7C3AED';
                               e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
                             }
                           }}
                           onMouseLeave={(e) => {
-                            if (!isSelected) {
-                              e.currentTarget.style.borderColor = '#E5E7EB';
+                            if (!isSelected && !isEliminated) {
+                              e.currentTarget.style.borderColor = '#D1D5DB';
                               e.currentTarget.style.boxShadow = 'none';
                             }
                           }}
                         >
-                          <div style={{
-                            color: '#111827',
-                            fontSize: '14px',
-                            fontWeight: isSelected ? '600' : '400',
-                            textAlign: 'center'
-                          }}>
-                            {getSongLabel(songId)}
-                          </div>
-                        </div>
+                          {isRecentlySelected && (
+                            <div className="arcade-burst">
+                              {/* Edge sparkles – doubled, smaller */}
+                              {[
+                                { top: "0%", left: "10%", dx: "0px", dy: "-35px" },
+                                { top: "0%", left: "30%", dx: "0px", dy: "-35px" },
+                                { top: "0%", left: "70%", dx: "0px", dy: "-35px" },
+                                { top: "0%", left: "90%", dx: "0px", dy: "-35px" },
+
+                                { top: "100%", left: "20%", dx: "0px", dy: "35px" },
+                                { top: "100%", left: "80%", dx: "0px", dy: "35px" },
+
+                                { top: "50%", left: "0%", dx: "-35px", dy: "0px" },
+                                { top: "50%", left: "100%", dx: "35px", dy: "0px" }
+                              ].map((pos, index) => (
+                                <span
+                                  key={index}
+                                  className="sparkle-shard"
+                                  style={
+                                    {
+                                      top: pos.top,
+                                      left: pos.left,
+                                      "--dx": pos.dx,
+                                      "--dy": pos.dy
+                                    } as React.CSSProperties
+                                  }
+                                >
+                                  ✨
+                                </span>
+                              ))}
+
+                              {/* 4 floating music notes – FFS palette with stagger */}
+                              {[
+                                { left: "25%", color: "#2563EB", symbol: "♪", delay: "0ms" },
+                                { left: "40%", color: "#10B981", symbol: "♫", delay: "60ms" },
+                                { left: "60%", color: "#7C3AED", symbol: "♪", delay: "120ms" },
+                                { left: "75%", color: "#EF4444", symbol: "♫", delay: "180ms" }
+                              ].map((note, index) => (
+                                <span
+                                  key={index}
+                                  className="music-note"
+                                  style={{
+                                    left: note.left,
+                                    color: note.color,
+                                    animationDelay: note.delay
+                                  }}
+                                >
+                                  {note.symbol}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          {getSongLabel(songId)}
+                          {isEliminated && (
+                            <span
+                              style={{
+                                position: 'absolute',
+                                top: '6px',
+                                right: '8px',
+                                fontSize: '10px',
+                                backgroundColor: '#E5E7EB',
+                                color: '#374151',
+                                padding: '2px 6px',
+                                borderRadius: '9999px'
+                              }}
+                            >
+                              Eliminated
+                            </span>
+                          )}
+                        </button>
                       );
                     })}
                   </div>
@@ -429,13 +581,110 @@ export default function StudentBracketPage() {
           </div>
         ))}
 
-      {!isFinalized && (
-        <button
-          onClick={handleFinalize}
-          disabled={finalizing || saving || studentPicks.length !== matchups.length}
+      {!isFinalized && !confirmingFinalize && (
+        <div style={{ textAlign: 'center', marginTop: '24px' }}>
+          <button
+            onClick={() => setConfirmingFinalize(true)}
+            disabled={finalizing || saving || studentPicks.length !== matchups.length}
+            style={{
+              backgroundColor: '#DC2626',
+              color: '#FFFFFF',
+              fontWeight: '700',
+              padding: '14px 28px',
+              borderRadius: '10px',
+              border: 'none',
+              fontSize: '16px',
+              boxShadow: '0 6px 20px rgba(220, 38, 38, 0.35)',
+              transition: 'transform 120ms ease, box-shadow 200ms ease',
+              cursor: finalizing || saving || studentPicks.length !== matchups.length ? 'default' : 'pointer',
+              opacity: finalizing || saving || studentPicks.length !== matchups.length ? 0.6 : 1,
+              animation: 'finalizePulse 3s ease-in-out infinite'
+            }}
+            onMouseEnter={(e) => {
+              if (!finalizing && !saving && studentPicks.length === matchups.length) {
+                e.currentTarget.style.transform = 'scale(1.03)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+          >
+            Finalize Bracket
+          </button>
+        </div>
+      )}
+
+      {!isFinalized && confirmingFinalize && (
+        <div style={{ textAlign: 'center', marginTop: '24px' }}>
+          <div
+            style={{
+              marginTop: '16px',
+              padding: '16px',
+              border: '2px solid #DC2626',
+              backgroundColor: '#FEF2F2',
+              borderRadius: '10px',
+              maxWidth: '500px',
+              marginLeft: 'auto',
+              marginRight: 'auto'
+            }}
+          >
+            <p style={{ fontWeight: '700', color: '#DC2626', marginBottom: '16px' }}>
+              Finalizing locks all selections. This cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button
+                onClick={() => setConfirmingFinalize(false)}
+                disabled={finalizing || saving || studentPicks.length !== matchups.length}
+                style={{
+                  backgroundColor: '#E5E7EB',
+                  color: '#111827',
+                  borderRadius: '8px',
+                  padding: '10px 16px',
+                  border: 'none',
+                  cursor: finalizing || saving || studentPicks.length !== matchups.length ? 'default' : 'pointer',
+                  opacity: finalizing || saving || studentPicks.length !== matchups.length ? 0.6 : 1
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleFinalize}
+                disabled={finalizing || saving || studentPicks.length !== matchups.length}
+                style={{
+                  backgroundColor: '#DC2626',
+                  color: '#FFFFFF',
+                  borderRadius: '8px',
+                  padding: '10px 16px',
+                  border: 'none',
+                  fontWeight: '700',
+                  boxShadow: '0 4px 12px rgba(220, 38, 38, 0.4)',
+                  cursor: finalizing || saving || studentPicks.length !== matchups.length ? 'default' : 'pointer',
+                  opacity: finalizing || saving || studentPicks.length !== matchups.length ? 0.6 : 1
+                }}
+              >
+                {finalizing ? 'Finalizing...' : 'Confirm Finalize'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isFinalized && (
+        <div
+          style={{
+            backgroundColor: '#ECFDF5',
+            border: '2px solid #10B981',
+            padding: '16px',
+            borderRadius: '10px',
+            maxWidth: '500px',
+            margin: '24px auto 0',
+            textAlign: 'center',
+            color: '#065F46',
+            fontWeight: '500'
+          }}
         >
-          {finalizing ? 'Finalizing...' : 'Finalize Bracket'}
-        </button>
+          Bracket finalized successfully. Your picks are locked.
+        </div>
       )}
 
       <div>

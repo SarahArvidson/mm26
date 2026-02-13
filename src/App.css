@@ -40,3 +40,125 @@
 .read-the-docs {
   color: #888;
 }
+
+@keyframes sparkleFade {
+  0% {
+    opacity: 1;
+    transform: scale(0.5);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+
+@keyframes winnerPulse {
+  0% { box-shadow: 0 0 0 2px #7C3AED, 0 0 12px rgba(124, 58, 237, 0.35); }
+  50% { box-shadow: 0 0 0 2px #7C3AED, 0 0 28px rgba(124, 58, 237, 0.65); }
+  100% { box-shadow: 0 0 0 2px #7C3AED, 0 0 12px rgba(124, 58, 237, 0.35); }
+}
+
+@keyframes sparkleShard {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.6);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.2);
+  }
+}
+
+@keyframes musicFloat {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateY(0) scale(0.9);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateY(-40px) scale(1.1);
+  }
+}
+
+.sparkle-burst {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: 8px;
+  animation: sparkleFade 450ms ease-out forwards;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sparkle-burst span {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: radial-gradient(circle, #FFD700 0%, #FFC107 40%, rgba(255,215,0,0.6) 70%, transparent 100%);
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.8);
+  animation: sparkleFade 450ms ease-out forwards;
+}
+
+.sparkle-burst span:nth-child(1) { transform: translate(-28px, -14px); }
+.sparkle-burst span:nth-child(2) { transform: translate(28px, 14px); }
+.sparkle-burst span:nth-child(3) { transform: translate(-14px, 28px); }
+.sparkle-burst span:nth-child(4) { transform: translate(14px, -28px); }
+.sparkle-burst span:nth-child(5) { transform: translate(-32px, 0); }
+.sparkle-burst span:nth-child(6) { transform: translate(32px, 0); }
+.sparkle-burst span:nth-child(7) { transform: translate(0, -32px); }
+.sparkle-burst span:nth-child(8) { transform: translate(0, 32px); }
+
+.arcade-burst {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.sparkle-shard {
+  position: absolute;
+  font-size: 12px; /* reduced 50% */
+  pointer-events: none;
+  animation: sparkleShard 550ms ease-out forwards;
+}
+
+.music-note {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  font-size: 26px;
+  font-weight: bold;
+  transform: translate(-50%, -50%) translateY(0);
+  opacity: 0;
+  pointer-events: none;
+  animation: musicFloat 750ms ease-out forwards;
+  animation-fill-mode: both;
+  will-change: transform, opacity;
+  text-shadow:
+    0 0 6px currentColor,
+    0 0 14px currentColor,
+    0 0 22px rgba(255,255,255,0.6);
+}
+
+@keyframes finalizePulse {
+  0% {
+    box-shadow: 0 6px 20px rgba(220, 38, 38, 0.35);
+  }
+  50% {
+    box-shadow: 0 6px 20px rgba(220, 38, 38, 0.5);
+  }
+  100% {
+    box-shadow: 0 6px 20px rgba(220, 38, 38, 0.35);
+  }
+}
