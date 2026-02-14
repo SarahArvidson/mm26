@@ -19,7 +19,10 @@ CREATE TABLE classes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   teacher_id UUID NOT NULL REFERENCES teachers(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  join_code TEXT NOT NULL,
+  join_code_created_at TIMESTAMPTZ DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(join_code)
 );
 
 -- Students table

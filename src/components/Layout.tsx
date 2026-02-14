@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 export default function Layout() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
-  const { user, signOut } = useAuth();
+  const { user, studentSession, signOut } = useAuth();
 
   const handleLogout = async () => {
     await signOut();
@@ -28,7 +28,7 @@ export default function Layout() {
             <Link to="/video-library" onClick={() => setMenuOpen(false)}>Video Library</Link>
             <Link to="/instructions" onClick={() => setMenuOpen(false)}>Instructions</Link>
             <Link to="/settings" onClick={() => setMenuOpen(false)}>Settings</Link>
-            {user && (
+            {(user || studentSession) && (
               <button onClick={handleLogout}>Logout</button>
             )}
           </nav>

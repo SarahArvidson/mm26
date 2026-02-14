@@ -9,11 +9,12 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [joinCode, setJoinCode] = useState('');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { signIn, resetPassword } = useAuth();
+  const { signIn, signInStudent, resetPassword } = useAuth();
 
   const handleTeacherLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,37 +57,33 @@ export default function LoginPage() {
   };
 
   const handleStudentLogin = async (e: React.FormEvent) => {
+    console.log('HANDLE STUDENT LOGIN CALLED');
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    // Map username to internal email format
-    const studentEmail = `${username}@students.internal`;
-    const { error } = await signIn(studentEmail, password);
+    if (!username || !password || !joinCode) {
+      setError('Please fill in all fields');
+      setLoading(false);
+      return;
+    }
+
+    console.log('Calling signInStudent with:', {
+      username,
+      password,
+      joinCode
+    });
+
+    const { error } = await signInStudent(username, password, joinCode);
     if (error) {
       setError(error.message);
       setLoading(false);
       return;
     }
 
-    // Wait for auth state to update, then check role
-    setTimeout(async () => {
-      const { data: { session } } = await supabase.supabase.auth.getSession();
-      if (session?.user) {
-        const { data: studentData } = await supabase
-          .from('students')
-          .select('id')
-          .eq('id', session.user.id)
-          .maybeSingle();
-        
-        if (studentData) {
-          navigate('/student-bracket');
-        } else {
-          setError('User not found in students table');
-        }
-      }
-      setLoading(false);
-    }, 100);
+    // Success - redirect to student bracket
+    navigate('/student-bracket');
+    setLoading(false);
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
@@ -95,8 +92,13 @@ export default function LoginPage() {
     setMessage(null);
     setLoading(true);
 
-    const emailToReset = isTeacher ? email : `${username}@students.internal`;
-    const { error } = await resetPassword(emailToReset);
+    if (!isTeacher) {
+      setError('Password reset is not available for students. Please contact your teacher.');
+      setLoading(false);
+      return;
+    }
+
+    const { error } = await resetPassword(email);
     if (error) {
       setError(error.message);
     } else {
@@ -191,6 +193,18 @@ export default function LoginPage() {
         <form onSubmit={handleStudentLogin}>
           <div>
             <label>
+              Class Join Code:
+              <input
+                type="text"
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                required
+                placeholder="Enter class code"
+              />
+            </label>
+          </div>
+          <div>
+            <label>
               Username:
               <input
                 type="text"
@@ -213,9 +227,6 @@ export default function LoginPage() {
           </div>
           <button type="submit" disabled={loading}>
             {loading ? 'Logging in...' : 'Login'}
-          </button>
-          <button type="button" onClick={() => setShowForgotPassword(true)}>
-            Forgot Password?
           </button>
         </form>
       )}

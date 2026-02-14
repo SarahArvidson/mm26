@@ -23,7 +23,7 @@ import {
 import RoundAccuracyPie from '../components/charts/RoundAccuracyPie';
 
 export default function StudentBracketPage() {
-  const { user } = useAuth();
+  const { studentSession } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -103,29 +103,17 @@ export default function StudentBracketPage() {
 
 
   useEffect(() => {
-    if (!user) return;
+    // Redirect to login if no student session
+    if (!studentSession) {
+      navigate('/login');
+      return;
+    }
     
-    // Check if user is a teacher and redirect
-    const checkRole = async () => {
-      const { data: teacherData } = await supabase
-        .from('teachers')
-        .select('id')
-        .eq('id', user.id)
-        .maybeSingle();
-      
-      if (teacherData) {
-        navigate('/teacher-dashboard');
-        return;
-      }
-      
-      loadData();
-    };
-    
-    checkRole();
-  }, [user, navigate]);
+    loadData();
+  }, [studentSession, navigate]);
 
   const loadData = async () => {
-    if (!user) return;
+    if (!studentSession) return;
 
     try {
       setLoading(true);
@@ -174,7 +162,7 @@ export default function StudentBracketPage() {
       const { data: bracketData, error: bracketError } = await supabase
         .from('student_brackets')
         .select('*')
-        .eq('student_id', user.id)
+        .eq('student_id', studentSession.student_id)
         .eq('season_id', active.id)
         .maybeSingle();
 
@@ -189,7 +177,7 @@ export default function StudentBracketPage() {
         const { data: newBracketData, error: createError } = await supabase
           .from('student_brackets')
           .insert({
-            student_id: user.id,
+            student_id: studentSession.student_id,
             season_id: active.id,
             finalized: false,
             points: 0,
@@ -211,16 +199,6 @@ export default function StudentBracketPage() {
       if (picksError) throw picksError;
       setStudentPicks((picksData || []) as StudentPick[]);
 
-      // Fetch student's class_id
-      const { data: studentData, error: studentError } = await supabase
-        .from('students')
-        .select('class_id')
-        .eq('id', user.id)
-        .single();
-
-      if (studentError) throw studentError;
-      if (!studentData) throw new Error('Student not found');
-
       // Fetch master results for scoring
       const { data: masterResultsData, error: masterResultsError } = await supabase
         .from('master_results')
@@ -235,7 +213,7 @@ export default function StudentBracketPage() {
       const { data: classStudentsData, error: classStudentsError } = await supabase
         .from('students')
         .select('id, name')
-        .eq('class_id', studentData.class_id);
+        .eq('class_id', studentSession.class_id);
 
       if (classStudentsError) throw classStudentsError;
       const studentNames = new Map<UUID, string>();
@@ -277,7 +255,7 @@ export default function StudentBracketPage() {
       setLeaderboard(sortedLeaderboard);
 
       // Compute current student's rank and breakdown
-      const rank = getStudentRank(user.id, sortedLeaderboard);
+      const rank = getStudentRank(studentSession.student_id, sortedLeaderboard);
       setStudentRank(rank);
 
       const breakdown = computePerRoundBreakdown(
@@ -792,7 +770,7 @@ export default function StudentBracketPage() {
                 </thead>
                 <tbody>
                   {leaderboard.map((score, index) => {
-                    const isCurrentStudent = score.student_id === user?.id;
+                    const isCurrentStudent = score.student_id === studentSession?.student_id;
                     const isTopThree = index < 3;
                     return (
                       <tr
