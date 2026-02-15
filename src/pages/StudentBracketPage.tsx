@@ -158,37 +158,24 @@ export default function StudentBracketPage() {
       const songsTyped = (songsData || []) as Song[];
       setSongs(songsTyped);
 
-      // Fetch or create student bracket
+      // Fetch or create student bracket using non-destructive upsert
       const { data: bracketData, error: bracketError } = await supabase
         .from('student_brackets')
-        .select('*')
-        .eq('student_id', studentSession.student_id)
-        .eq('season_id', active.id)
-        .maybeSingle();
-
-      if (bracketError) throw bracketError;
-
-      let bracket: StudentBracket;
-      if (bracketData) {
-        bracket = bracketData as StudentBracket;
-        setStudentBracket(bracket);
-      } else {
-        // Create new student bracket
-        const { data: newBracketData, error: createError } = await supabase
-          .from('student_brackets')
-          .insert({
+        .upsert(
+          {
             student_id: studentSession.student_id,
             season_id: active.id,
-            finalized: false,
-            points: 0,
-          })
-          .select()
-          .single();
+          },
+          {
+            onConflict: 'student_id,season_id'
+          }
+        )
+        .select()
+        .single();
 
-        if (createError) throw createError;
-        bracket = newBracketData as StudentBracket;
-        setStudentBracket(bracket);
-      }
+      if (bracketError) throw bracketError;
+      const bracket = bracketData as StudentBracket;
+      setStudentBracket(bracket);
 
       // Fetch student picks
       const { data: picksData, error: picksError } = await supabase
@@ -197,7 +184,8 @@ export default function StudentBracketPage() {
         .eq('student_bracket_id', bracket.id);
 
       if (picksError) throw picksError;
-      setStudentPicks((picksData || []) as StudentPick[]);
+      const studentPicksDataTyped = (picksData || []) as StudentPick[];
+      setStudentPicks(studentPicksDataTyped);
 
       // Fetch master results for scoring
       const { data: masterResultsData, error: masterResultsError } = await supabase
@@ -212,13 +200,13 @@ export default function StudentBracketPage() {
       // Fetch all students in the class
       const { data: classStudentsData, error: classStudentsError } = await supabase
         .from('students')
-        .select('id, name')
+        .select('id, username')
         .eq('class_id', studentSession.class_id);
 
       if (classStudentsError) throw classStudentsError;
       const studentNames = new Map<UUID, string>();
       (classStudentsData || []).forEach((s: any) => {
-        studentNames.set(s.id, s.name);
+        studentNames.set(s.id, s.username);
       });
 
       // Fetch all student brackets for the class
@@ -258,8 +246,9 @@ export default function StudentBracketPage() {
       const rank = getStudentRank(studentSession.student_id, sortedLeaderboard);
       setStudentRank(rank);
 
+      // Calculate per-round scores from picks and master results
       const breakdown = computePerRoundBreakdown(
-        studentPicks,
+        studentPicksDataTyped,
         masterResultsDataTyped,
         matchupsTyped
       );
@@ -710,36 +699,44 @@ export default function StudentBracketPage() {
                     </p>
                   </>
                 )}
-                <div style={{ fontSize: '20px', marginTop: '16px', color: '#111827' }}>
-                  {studentBracket?.points ?? 0} points
-                </div>
-              </div>
-              <div>
-                <p style={{ margin: '4px 0 8px 0', fontSize: '14px', color: '#6B7280' }}>Par tour</p>
-                {roundBreakdown.map(({ round, score }) => {
-                  const roundLabel = round === 1 ? '1er tour' : round === 2 ? '2e tour' : round === 3 ? '3e tour' : 'Championnat';
+                {(() => {
+                  // Compute total points from per-round scores
+                  const computedTotalPoints = roundBreakdown.reduce((sum, { score }) => sum + score, 0);
                   return (
-                    <div key={round} style={{ marginBottom: '8px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <span style={{ fontSize: '12px', color: '#374151' }}>{roundLabel}</span>
-                        <span style={{ fontSize: '12px', fontWeight: '600', color: '#111827' }}>{score}</span>
+                    <>
+                      <div style={{ fontSize: '20px', marginTop: '16px', color: '#111827' }}>
+                        {computedTotalPoints} points
                       </div>
-                      <div style={{
-                        height: '6px',
-                        backgroundColor: '#E5E7EB',
-                        borderRadius: '3px',
-                        overflow: 'hidden'
-                      }}>
-                        <div style={{
-                          height: '100%',
-                          width: `${Math.min((score / Math.max(studentBracket?.points ?? 1, 1)) * 100, 100)}%`,
-                          backgroundColor: '#7C3AED',
-                          transition: 'width 300ms ease'
-                        }} />
+                      <div>
+                        <p style={{ margin: '4px 0 8px 0', fontSize: '14px', color: '#6B7280' }}>Par tour</p>
+                        {roundBreakdown.map(({ round, score }) => {
+                          const roundLabel = round === 1 ? '1er tour' : round === 2 ? '2e tour' : round === 3 ? '3e tour' : 'Championnat';
+                          return (
+                            <div key={round} style={{ marginBottom: '8px' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                                <span style={{ fontSize: '12px', color: '#374151' }}>{roundLabel}</span>
+                                <span style={{ fontSize: '12px', fontWeight: '600', color: '#111827' }}>{score}</span>
+                              </div>
+                              <div style={{
+                                height: '6px',
+                                backgroundColor: '#E5E7EB',
+                                borderRadius: '3px',
+                                overflow: 'hidden'
+                              }}>
+                                <div style={{
+                                  height: '100%',
+                                  width: `${Math.min((score / Math.max(computedTotalPoints, 1)) * 100, 100)}%`,
+                                  backgroundColor: '#7C3AED',
+                                  transition: 'width 300ms ease'
+                                }} />
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                    </div>
+                    </>
                   );
-                })}
+                })()}
               </div>
               </div>
             </div>
@@ -764,7 +761,7 @@ export default function StudentBracketPage() {
                 <thead>
                   <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '2px solid #E5E7EB' }}>
                     <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Rang</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Nom</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Nom d'utilisateur</th>
                     <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Points</th>
                   </tr>
                 </thead>

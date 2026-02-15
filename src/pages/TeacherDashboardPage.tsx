@@ -25,6 +25,7 @@ interface Class {
   id: UUID;
   name: string;
   teacher_id: UUID;
+  join_code: string;
 }
 
 export default function TeacherDashboardPage() {
@@ -42,6 +43,11 @@ export default function TeacherDashboardPage() {
   const [masterResults, setMasterResults] = useState<MasterResult[]>([]);
   const [teacherBrackets, setTeacherBrackets] = useState<StudentBracket[]>([]);
   const [teacherPicks, setTeacherPicks] = useState<StudentPick[]>([]);
+  const [newClassName, setNewClassName] = useState('');
+  const [generatedJoinCode, setGeneratedJoinCode] = useState<string | null>(null);
+  const [classStudents, setClassStudents] = useState<Array<{ id: UUID; name: string; username: string }>>([]);
+  const [deletingStudentId, setDeletingStudentId] = useState<UUID | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<UUID | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -51,8 +57,26 @@ export default function TeacherDashboardPage() {
   useEffect(() => {
     if (selectedClassId && activeSeason) {
       loadClassLeaderboard();
+      loadClassStudents();
     }
   }, [selectedClassId, activeSeason]);
+
+  const loadClassStudents = async () => {
+    if (!selectedClassId) return;
+
+    try {
+      const { data: studentsData, error: studentsError } = await supabase
+        .from('students')
+        .select('id, name, username')
+        .eq('class_id', selectedClassId)
+        .order('name', { ascending: true });
+
+      if (studentsError) throw studentsError;
+      setClassStudents((studentsData || []) as Array<{ id: UUID; name: string; username: string }>);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load students');
+    }
+  };
 
   const loadData = async () => {
     if (!user) return;
@@ -171,13 +195,13 @@ export default function TeacherDashboardPage() {
       // Fetch all students in the class
       const { data: classStudentsData, error: classStudentsError } = await supabase
         .from('students')
-        .select('id, name')
+        .select('id, username')
         .eq('class_id', selectedClassId);
 
       if (classStudentsError) throw classStudentsError;
       const studentNames = new Map<UUID, string>();
       (classStudentsData || []).forEach((s: any) => {
-        studentNames.set(s.id, s.name);
+        studentNames.set(s.id, s.username);
       });
 
       // Fetch all student brackets for the class
@@ -231,56 +255,353 @@ export default function TeacherDashboardPage() {
 
   return (
     <div>
-      <h1>Teacher Dashboard - {activeSeason.name}</h1>
+      <h1>Tableaumanie Teacher - {activeSeason.name}</h1>
       {error && <div>Error: {error}</div>}
 
       <div style={{
+        display: 'flex',
+        gap: '24px',
         marginBottom: '24px',
-        padding: '20px',
-        border: '1px solid #E5E7EB',
-        borderRadius: '8px',
-        backgroundColor: '#FFFFFF',
-        maxWidth: '400px'
+        flexWrap: 'wrap'
       }}>
-        <label style={{
-          display: 'block',
-          fontWeight: '600',
-          color: '#374151',
-          marginBottom: '8px',
-          fontSize: '14px'
+        {/* Select Class Card */}
+        <div style={{
+          padding: '20px',
+          border: '1px solid #E5E7EB',
+          borderRadius: '8px',
+          backgroundColor: '#FFFFFF',
+          minWidth: '300px',
+          flex: 1
         }}>
-          Select Class
-        </label>
-        <select
-          value={selectedClassId || ''}
-          onChange={(e) => setSelectedClassId(e.target.value as UUID)}
-          style={{
-            width: '100%',
-            padding: '10px',
-            border: '1px solid #D1D5DB',
-            borderRadius: '6px',
-            backgroundColor: '#FFFFFF',
-            color: '#111827',
-            fontSize: '14px',
-            cursor: 'pointer'
-          }}
-          onFocus={(e) => {
-            e.target.style.borderColor = '#7C3AED';
-            e.target.style.boxShadow = '0 0 0 3px rgba(124, 58, 237, 0.1)';
-          }}
-          onBlur={(e) => {
-            e.target.style.borderColor = '#D1D5DB';
-            e.target.style.boxShadow = 'none';
-          }}
-        >
-          <option value="">-- Select Class --</option>
-          {classes.map((cls) => (
-            <option key={cls.id} value={cls.id}>
-              {cls.name}
-            </option>
-          ))}
-        </select>
+          <label style={{
+            display: 'block',
+            fontWeight: '600',
+            color: '#374151',
+            marginBottom: '8px',
+            fontSize: '14px'
+          }}>
+            Select Class
+          </label>
+          <select
+            value={selectedClassId || ''}
+            onChange={(e) => {
+              setSelectedClassId(e.target.value as UUID);
+              setGeneratedJoinCode(null);
+            }}
+            style={{
+              width: '100%',
+              padding: '10px',
+              border: '1px solid #D1D5DB',
+              borderRadius: '6px',
+              backgroundColor: '#FFFFFF',
+              color: '#111827',
+              fontSize: '14px',
+              cursor: 'pointer'
+            }}
+            onFocus={(e) => {
+              e.target.style.borderColor = '#7C3AED';
+              e.target.style.boxShadow = '0 0 0 3px rgba(124, 58, 237, 0.1)';
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = '#D1D5DB';
+              e.target.style.boxShadow = 'none';
+            }}
+          >
+            <option value="">-- Select Class --</option>
+            {classes.map((cls) => (
+              <option key={cls.id} value={cls.id}>
+                {cls.name}
+              </option>
+            ))}
+          </select>
+          {selectedClassId && (() => {
+            const selectedClass = classes.find(c => c.id === selectedClassId);
+            return selectedClass?.join_code ? (
+              <div style={{
+                marginTop: '12px',
+                padding: '12px',
+                backgroundColor: '#F0FDF4',
+                border: '1px solid #86EFAC',
+                borderRadius: '6px'
+              }}>
+                <div style={{
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#166534',
+                  marginBottom: '4px'
+                }}>
+                  Join Code: {selectedClass.join_code}
+                </div>
+                <div style={{
+                  fontSize: '12px',
+                  color: '#15803D',
+                  marginTop: '4px'
+                }}>
+                  Share this code with students to join this class
+                </div>
+              </div>
+            ) : null;
+          })()}
+        </div>
+
+        {/* Create New Class Card */}
+        <div style={{
+          padding: '20px',
+          border: '1px solid #E5E7EB',
+          borderRadius: '8px',
+          backgroundColor: '#FFFFFF',
+          minWidth: '300px',
+          flex: 1
+        }}>
+          <h3 style={{
+            marginTop: 0,
+            marginBottom: '16px',
+            fontWeight: '600',
+            color: '#374151',
+            fontSize: '16px'
+          }}>
+            Create New Class
+          </h3>
+          <input
+            type="text"
+            value={newClassName}
+            onChange={(e) => setNewClassName(e.target.value)}
+            placeholder="Class Name"
+            required
+            style={{
+              width: '100%',
+              padding: '10px',
+              border: '1px solid #D1D5DB',
+              borderRadius: '6px',
+              backgroundColor: '#FFFFFF',
+              color: '#111827',
+              fontSize: '14px',
+              marginBottom: '12px',
+              boxSizing: 'border-box'
+            }}
+          />
+          <button
+            type="button"
+            onClick={async () => {
+              if (!newClassName.trim() || !user) return;
+              
+              // Generate 6 uppercase random letters
+              const generateJoinCode = () => {
+                const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                let code = '';
+                for (let i = 0; i < 6; i++) {
+                  code += letters.charAt(Math.floor(Math.random() * letters.length));
+                }
+                return code;
+              };
+
+              const joinCode = generateJoinCode();
+
+              try {
+                const { data: newClass, error } = await supabase
+                  .from('classes')
+                  .insert({
+                    name: newClassName.trim(),
+                    teacher_id: user.id,
+                    join_code: joinCode
+                  })
+                  .select()
+                  .single();
+
+                if (error) throw error;
+
+                // Refresh class list
+                const { data: classesData, error: classesError } = await supabase
+                  .from('classes')
+                  .select('*')
+                  .eq('teacher_id', user.id);
+
+                if (classesError) throw classesError;
+                setClasses((classesData || []) as Class[]);
+
+                // Auto-select newly created class
+                if (newClass) {
+                  setSelectedClassId(newClass.id);
+                }
+
+                // Store and display join code, clear input
+                setGeneratedJoinCode(joinCode);
+                setNewClassName('');
+              } catch (err) {
+                setError(err instanceof Error ? err.message : 'Failed to create class');
+              }
+            }}
+            disabled={!newClassName.trim()}
+            style={{
+              width: '100%',
+              padding: '10px',
+              backgroundColor: '#7C3AED',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: newClassName.trim() ? 'pointer' : 'not-allowed',
+              opacity: newClassName.trim() ? 1 : 0.5,
+              boxSizing: 'border-box'
+            }}
+          >
+            Create
+          </button>
+          {generatedJoinCode && (
+            <div style={{
+              marginTop: '12px',
+              padding: '12px',
+              backgroundColor: '#F0FDF4',
+              border: '1px solid #86EFAC',
+              borderRadius: '6px'
+            }}>
+              <div style={{
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#166534',
+                marginBottom: '4px'
+              }}>
+                Join Code: {generatedJoinCode}
+              </div>
+              <div style={{
+                fontSize: '12px',
+                color: '#15803D',
+                marginTop: '4px'
+              }}>
+                Share this code with students to join the class
+              </div>
+            </div>
+          )}
+        </div>
       </div>
+
+      {selectedClassId && (
+        <>
+          {/* Students in this Class */}
+          <div style={{
+            marginBottom: '32px',
+            padding: '20px',
+            border: '1px solid #E5E7EB',
+            borderRadius: '8px',
+            backgroundColor: '#FFFFFF'
+          }}>
+            <h2 style={{
+              color: '#7C3AED',
+              marginTop: '0',
+              marginBottom: '16px',
+              fontSize: '20px',
+              fontWeight: '600'
+            }}>
+              Students in this Class
+            </h2>
+            {classStudents.length === 0 ? (
+              <p style={{ color: '#6B7280', margin: 0 }}>No students in this class yet.</p>
+            ) : (
+              <div style={{
+                display: 'grid',
+                gap: '12px'
+              }}>
+                {classStudents.map((student) => (
+                  <div
+                    key={student.id}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '12px',
+                      border: '1px solid #E5E7EB',
+                      borderRadius: '6px',
+                      backgroundColor: '#F9FAFB'
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: '600', color: '#111827', marginBottom: '4px' }}>
+                        {student.name}
+                      </div>
+                      <div style={{ fontSize: '14px', color: '#6B7280' }}>
+                        {student.username}
+                      </div>
+                    </div>
+                    {showDeleteConfirm === student.id ? (
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <span style={{ fontSize: '14px', color: '#DC2626' }}>Delete?</span>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            setDeletingStudentId(student.id);
+                            try {
+                              const { error: deleteError } = await supabase
+                                .from('students')
+                                .delete()
+                                .eq('id', student.id);
+
+                              if (deleteError) throw deleteError;
+
+                              // Refresh list
+                              await loadClassStudents();
+                              setShowDeleteConfirm(null);
+                            } catch (err) {
+                              setError(err instanceof Error ? err.message : 'Failed to delete student');
+                            }
+                            setDeletingStudentId(null);
+                          }}
+                          disabled={deletingStudentId === student.id}
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: '#DC2626',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontSize: '14px',
+                            cursor: deletingStudentId === student.id ? 'not-allowed' : 'pointer',
+                            opacity: deletingStudentId === student.id ? 0.5 : 1
+                          }}
+                        >
+                          Confirm
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowDeleteConfirm(null)}
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: '#E5E7EB',
+                            color: '#374151',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontSize: '14px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setShowDeleteConfirm(student.id)}
+                        disabled={deletingStudentId !== null}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: '#EF4444',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          borderRadius: '4px',
+                          fontSize: '14px',
+                          cursor: deletingStudentId !== null ? 'not-allowed' : 'pointer',
+                          opacity: deletingStudentId !== null ? 0.5 : 1
+                        }}
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       {selectedClassId && activeSeason && (
         <>
@@ -349,7 +670,7 @@ export default function TeacherDashboardPage() {
                         fontWeight: '600',
                         fontSize: '14px'
                       }}>
-                        Name
+                        Nom d'utilisateur
                       </th>
                       <th style={{
                         padding: '12px',

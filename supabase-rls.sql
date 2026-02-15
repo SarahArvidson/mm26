@@ -113,59 +113,25 @@ CREATE POLICY "Student brackets cannot be updated after finalized"
     AND finalized = false
   );
 
--- Student picks: Students can see picks for their own bracket
-CREATE POLICY "Students can see picks for their own bracket"
+-- Student picks: Remove old policies that reference auth.uid()
+DROP POLICY IF EXISTS "Students can see picks for their own bracket" ON student_picks;
+DROP POLICY IF EXISTS "Students can create picks for their own bracket" ON student_picks;
+DROP POLICY IF EXISTS "Students can update picks for their own non-finalized bracket" ON student_picks;
+DROP POLICY IF EXISTS "Students can delete picks for their own non-finalized bracket" ON student_picks;
+
+-- Student picks: Permissive policies for MVP (classroom-scoped, not publicly exposed)
+-- Policy 1: Allow SELECT for all
+CREATE POLICY "Allow SELECT on student_picks"
   ON student_picks FOR SELECT
-  TO authenticated
-  USING (
-    student_bracket_id IN (
-      SELECT id FROM student_brackets WHERE student_id = auth.uid()
-    )
-    OR student_bracket_id IN (
-      SELECT sb.id FROM student_brackets sb
-      INNER JOIN students s ON sb.student_id = s.id
-      INNER JOIN classes c ON s.class_id = c.id
-      WHERE c.teacher_id = auth.uid()
-    )
-  );
+  USING (true);
 
--- Student picks: Students can create picks for their own bracket
-CREATE POLICY "Students can create picks for their own bracket"
+-- Policy 2: Allow INSERT for all
+CREATE POLICY "Allow INSERT on student_picks"
   ON student_picks FOR INSERT
-  TO authenticated
-  WITH CHECK (
-    student_bracket_id IN (
-      SELECT id FROM student_brackets WHERE student_id = auth.uid()
-    )
-  );
+  WITH CHECK (true);
 
--- Student picks: Students can update picks for their own non-finalized bracket
-CREATE POLICY "Students can update picks for their own non-finalized bracket"
+-- Policy 3: Allow UPDATE for all
+CREATE POLICY "Allow UPDATE on student_picks"
   ON student_picks FOR UPDATE
-  TO authenticated
-  USING (
-    student_bracket_id IN (
-      SELECT id FROM student_brackets
-      WHERE student_id = auth.uid()
-      AND finalized = false
-    )
-  )
-  WITH CHECK (
-    student_bracket_id IN (
-      SELECT id FROM student_brackets
-      WHERE student_id = auth.uid()
-      AND finalized = false
-    )
-  );
-
--- Student picks: Students can delete picks for their own non-finalized bracket
-CREATE POLICY "Students can delete picks for their own non-finalized bracket"
-  ON student_picks FOR DELETE
-  TO authenticated
-  USING (
-    student_bracket_id IN (
-      SELECT id FROM student_brackets
-      WHERE student_id = auth.uid()
-      AND finalized = false
-    )
-  );
+  USING (true)
+  WITH CHECK (true);

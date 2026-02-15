@@ -9,12 +9,137 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [joinCode, setJoinCode] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [generatedUsername, setGeneratedUsername] = useState('');
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { signIn, signInStudent, resetPassword } = useAuth();
+
+  // Username generation word banks
+  const artistNames = [
+    'NuitIncolore',
+    'MissyD',
+    'MagicSystem',
+    'LesMaryann',
+    'GIMS',
+    'LeFLOFRANCO',
+    'Vitaa',
+    'ClaudeBégin',
+    'ClaudiaBouvette',
+    'MIKA',
+    'Lékho',
+    'BlackM',
+    'Amir',
+    'BaladjiKawata',
+    'Vianney',
+    'KendjiGirac',
+    'Soprano',
+    'JulienCanaby',
+    'Ouidad',
+    'AnishaJo',
+    'Lubiana',
+    'Floran',
+    'Eloïz',
+    'Ridsa',
+    'Salebarbes',
+    'Corneille',
+    'Soolking',
+    'TALI',
+    'YanissOdua',
+    'FNX',
+    'OneLove',
+    'MCSolaar',
+    'MarieFlore',
+    'Kimberose',
+    'WEREVANA',
+    'RenéGEOFFROY',
+    'MargotAbate',
+    'KeenV',
+    'LeVentDuNord',
+    'Mentissa',
+    'Wejdene',
+    'Zaho',
+    'Tayc',
+    'Smarty',
+    'Zeynab',
+    'Toofan',
+    'JoyceJonathan',
+    'Zaz',
+    'Nassi',
+    'DANAKIL',
+    'JulienGranel',
+    'Céphaz',
+    'Fredz',
+    'PortAuxPoutines',
+    'Maheva',
+    'MPL',
+    'EloïshaIza',
+    'RichyJay',
+    'Oli',
+    'CharlieOz',
+    'BoulevardDesAirs',
+    'KellyBado',
+    'Lenaïg',
+    'Luiza',
+    'BillieDuPage',
+    'Jyeuhair',
+    'Saël'
+  ];
+
+  const musicWords = [
+    'Rythme',
+    'Mélodie',
+    'Artiste',
+    'Rappeur',
+    'Orchestre',
+    'Concert',
+    'Entraînant',
+    'Chanteur',
+    'Chanson',
+    'Temps',
+    'Spectacle',
+    'Doué',
+    'Talentueux'
+  ];
+
+  // Generate username utility
+  const generateUsername = () => {
+    const randomArtist = artistNames[Math.floor(Math.random() * artistNames.length)];
+    const randomMusicWord = musicWords[Math.floor(Math.random() * musicWords.length)];
+    const randomNumber = Math.floor(Math.random() * 1000); // 0-999
+    const paddedNumber = randomNumber.toString().padStart(3, '0'); // 000-999
+    return `${randomArtist}${randomMusicWord}${paddedNumber}`;
+  };
+
+  // Check if username exists in class
+  const checkUsernameExists = async (usernameToCheck: string, classId: string): Promise<boolean> => {
+    const { data } = await supabase
+      .from('students')
+      .select('id')
+      .eq('class_id', classId)
+      .eq('username', usernameToCheck)
+      .maybeSingle();
+    return !!data;
+  };
+
+  // Generate unique username for class
+  const generateUniqueUsername = async (classId: string): Promise<string> => {
+    let attempts = 0;
+    let newUsername = generateUsername();
+    
+    while (await checkUsernameExists(newUsername, classId) && attempts < 50) {
+      newUsername = generateUsername();
+      attempts++;
+    }
+    
+    return newUsername;
+  };
 
   const handleTeacherLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,45 +308,414 @@ export default function LoginPage() {
           </button>
         </form>
       ) : (
-        <form onSubmit={handleStudentLogin}>
+        <>
           <div>
-            <label>
-              Class Join Code:
-              <input
-                type="text"
-                value={joinCode}
-                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                required
-                placeholder="Enter class code"
-              />
-            </label>
+            <button 
+              onClick={() => {
+                setIsSignUp(false);
+                setError(null);
+                setGeneratedUsername('');
+                setFullName('');
+                setPassword('');
+                setConfirmPassword('');
+                setShowConfirmation(false);
+              }}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: !isSignUp ? '#7C3AED' : '#E5E7EB',
+                color: !isSignUp ? '#FFFFFF' : '#374151',
+                border: 'none',
+                borderRadius: '6px',
+                marginRight: '8px',
+                cursor: 'pointer'
+              }}
+            >
+              Login
+            </button>
+            <button 
+              onClick={() => {
+                setIsSignUp(true);
+                setError(null);
+                setGeneratedUsername('');
+                setFullName('');
+                setPassword('');
+                setConfirmPassword('');
+                setShowConfirmation(false);
+              }}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: isSignUp ? '#7C3AED' : '#E5E7EB',
+                color: isSignUp ? '#FFFFFF' : '#374151',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer'
+              }}
+            >
+              Sign Up
+            </button>
           </div>
-          <div>
-            <label>
-              Username:
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-              />
-            </label>
-          </div>
-          <div>
-            <label>
-              Password:
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </label>
-          </div>
-          <button type="submit" disabled={loading}>
-            {loading ? 'Logging in...' : 'Login'}
-          </button>
-        </form>
+          {!isSignUp ? (
+            <form onSubmit={handleStudentLogin}>
+              <div>
+                <label>
+                  Class Join Code:
+                  <input
+                    type="text"
+                    value={joinCode}
+                    onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                    required
+                    placeholder="Enter class code"
+                  />
+                </label>
+              </div>
+              <div>
+                <label>
+                  Username:
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
+                  />
+                </label>
+              </div>
+              <div>
+                <label>
+                  Password:
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                </label>
+              </div>
+              <button type="submit" disabled={loading}>
+                {loading ? 'Logging in...' : 'Login'}
+              </button>
+            </form>
+          ) : (
+            <>
+              {showConfirmation ? (
+                <div style={{
+                  padding: '20px',
+                  border: '1px solid #E5E7EB',
+                  borderRadius: '8px',
+                  backgroundColor: '#FFFFFF',
+                  maxWidth: '400px'
+                }}>
+                  <p style={{ marginBottom: '16px', fontSize: '16px' }}>
+                    T'es content(e) avec ton nom d'utilisateur ? Tu ne peux pas le changer plus tard.
+                  </p>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmation(false)}
+                      style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#E5E7EB',
+                        color: '#374151',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setShowConfirmation(false);
+                        setLoading(true);
+                        setError(null);
+
+                        try {
+                          // Look up class by join_code
+                          const { data: classData, error: classError } = await supabase
+                            .from('classes')
+                            .select('id')
+                            .eq('join_code', joinCode.toUpperCase())
+                            .maybeSingle();
+
+                          if (classError || !classData) {
+                            setError('Invalid join code');
+                            setLoading(false);
+                            return;
+                          }
+
+                          // Check if name already exists in class
+                          const { data: existingName } = await supabase
+                            .from('students')
+                            .select('id')
+                            .eq('class_id', classData.id)
+                            .eq('name', fullName.trim())
+                            .maybeSingle();
+
+                          if (existingName) {
+                            setError('This name is already used in this class');
+                            setLoading(false);
+                            return;
+                          }
+
+                          // Check if username already exists in class
+                          const usernameExists = await checkUsernameExists(generatedUsername, classData.id);
+                          if (usernameExists) {
+                            setError('Username already taken. Please regenerate.');
+                            setLoading(false);
+                            return;
+                          }
+
+                          // Hash password
+                          const bcrypt = await import('bcryptjs');
+                          const passwordHash = await bcrypt.hash(password, 10);
+
+                          // Generate UUID for student
+                          const studentId = crypto.randomUUID();
+
+                          // Insert student directly into students table
+                          const { error: insertError } = await supabase
+                            .from('students')
+                            .insert({
+                              id: studentId,
+                              class_id: classData.id,
+                              username: generatedUsername,
+                              password_hash: passwordHash,
+                              name: fullName.trim()
+                            });
+
+                          if (insertError) {
+                            if (insertError.code === '23505') {
+                              if (insertError.message.includes('class_id') && insertError.message.includes('name')) {
+                                setError('This name is already used in this class');
+                              } else if (insertError.message.includes('username')) {
+                                setError('Username already taken. Please regenerate.');
+                              } else {
+                                setError('Registration failed. Please try again.');
+                              }
+                            } else {
+                              setError(insertError.message || 'Registration failed');
+                            }
+                            setLoading(false);
+                            return;
+                          }
+
+                          // Auto-login using custom student auth (not Supabase auth)
+                          const { error: loginError } = await signInStudent(generatedUsername, password, joinCode.toUpperCase());
+                          if (loginError) {
+                            setError('Account created but login failed. Please log in manually.');
+                            setLoading(false);
+                            return;
+                          }
+
+                          // Success - redirect
+                          navigate('/student-bracket');
+                        } catch (err) {
+                          setError(err instanceof Error ? err.message : 'Registration failed');
+                        }
+                        setLoading(false);
+                      }}
+                      disabled={loading}
+                      style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#7C3AED',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: loading ? 'not-allowed' : 'pointer',
+                        opacity: loading ? 0.5 : 1
+                      }}
+                    >
+                      Confirmer
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  setError(null);
+
+                  if (!joinCode || !fullName || !generatedUsername || !password || !confirmPassword) {
+                    setError('Please fill in all fields');
+                    return;
+                  }
+
+                  if (password !== confirmPassword) {
+                    setError('Passwords do not match');
+                    return;
+                  }
+
+                  if (password.length < 6) {
+                    setError('Password must be at least 6 characters');
+                    return;
+                  }
+
+                  // Validate class exists
+                  const { data: classData, error: classError } = await supabase
+                    .from('classes')
+                    .select('id')
+                    .eq('join_code', joinCode.toUpperCase())
+                    .maybeSingle();
+
+                  if (classError || !classData) {
+                    setError('Invalid join code');
+                    return;
+                  }
+
+                  // Check if name already exists
+                  const { data: existingName } = await supabase
+                    .from('students')
+                    .select('id')
+                    .eq('class_id', classData.id)
+                    .eq('name', fullName.trim())
+                    .maybeSingle();
+
+                  if (existingName) {
+                    setError('This name is already used in this class');
+                    return;
+                  }
+
+                  // Check if username already exists
+                  const usernameExists = await checkUsernameExists(generatedUsername, classData.id);
+                  if (usernameExists) {
+                    setError('Username already taken. Please regenerate.');
+                    return;
+                  }
+
+                  // Show confirmation
+                  setShowConfirmation(true);
+                }}>
+                  <div>
+                    <label>
+                      Class Join Code:
+                      <input
+                        type="text"
+                        value={joinCode}
+                        onChange={async (e) => {
+                          const newCode = e.target.value.toUpperCase();
+                          setJoinCode(newCode);
+                          // Auto-generate username when join code is entered
+                          if (newCode.length === 6 && !generatedUsername) {
+                            const { data: classData } = await supabase
+                              .from('classes')
+                              .select('id')
+                              .eq('join_code', newCode)
+                              .maybeSingle();
+                            
+                            if (classData) {
+                              const uniqueUsername = await generateUniqueUsername(classData.id);
+                              setGeneratedUsername(uniqueUsername);
+                            }
+                          }
+                        }}
+                        required
+                        placeholder="Enter class code"
+                      />
+                    </label>
+                  </div>
+                  <div>
+                    <label>
+                      Full Name:
+                      <input
+                        type="text"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        required
+                        placeholder="Your full name"
+                      />
+                    </label>
+                  </div>
+                  <div>
+                    <label>
+                      Username:
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <input
+                          type="text"
+                          value={generatedUsername || 'Click Regenerate to generate username'}
+                          readOnly
+                          required
+                          autoComplete="off"
+                          style={{
+                            flex: 1,
+                            backgroundColor: '#F3F4F6',
+                            cursor: 'not-allowed',
+                            color: generatedUsername ? '#111827' : '#9CA3AF'
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!joinCode) {
+                              setError('Please enter join code first');
+                              return;
+                            }
+                            setError(null);
+                            
+                            // Look up class
+                            const { data: classData, error: classError } = await supabase
+                              .from('classes')
+                              .select('id')
+                              .eq('join_code', joinCode.toUpperCase())
+                              .maybeSingle();
+
+                            if (classError || !classData) {
+                              setError('Invalid join code');
+                              return;
+                            }
+
+                            // Generate unique username
+                            const uniqueUsername = await generateUniqueUsername(classData.id);
+                            setGeneratedUsername(uniqueUsername);
+                          }}
+                          disabled={!joinCode}
+                          style={{
+                            padding: '8px 16px',
+                            backgroundColor: '#10B981',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: !joinCode ? 'not-allowed' : 'pointer',
+                            opacity: !joinCode ? 0.5 : 1
+                          }}
+                        >
+                          {generatedUsername ? 'Regenerate' : 'Generate'}
+                        </button>
+                      </div>
+                    </label>
+                  </div>
+                  <div>
+                    <label>
+                      Password:
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        minLength={6}
+                        autoComplete="new-password"
+                      />
+                    </label>
+                  </div>
+                  <div>
+                    <label>
+                      Confirm Password:
+                      <input
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
+                        minLength={6}
+                        autoComplete="new-password"
+                      />
+                    </label>
+                  </div>
+                  <button type="submit" disabled={loading || !generatedUsername}>
+                    {loading ? 'Creating...' : 'Create Account'}
+                  </button>
+                </form>
+              )}
+            </>
+          )}
+        </>
       )}
       {error && <div>{error}</div>}
     </div>

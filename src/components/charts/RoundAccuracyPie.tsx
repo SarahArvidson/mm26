@@ -50,7 +50,7 @@ export default function RoundAccuracyPie({
 
   if (total === 0) {
     const roundLabel = round === 4 ? 'Championnat' : round === 1 ? '1er tour' : round === 2 ? '2e tour' : '3e tour';
-    return <div>Aucune prédiction pour {roundLabel}</div>;
+    return <div>Aucune prédiction pour le {roundLabel}</div>;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
