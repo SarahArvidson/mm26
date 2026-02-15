@@ -475,6 +475,7 @@ export default function LoginPage() {
                 </label>
                 <input
                   type="text"
+                  name="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   required
@@ -495,6 +496,7 @@ export default function LoginPage() {
                 </label>
                 <input
                   type="password"
+                  name="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -570,12 +572,13 @@ export default function LoginPage() {
                   border: '1px solid #E5E7EB',
                   borderRadius: '8px',
                   backgroundColor: '#FFFFFF',
-                  maxWidth: '400px'
+                  maxWidth: '400px',
+                  textAlign: 'center'
                 }}>
                   <p style={{ marginBottom: '16px', fontSize: '16px' }}>
                     T'es content(e) avec ton nom d'utilisateur ? Tu ne peux pas le changer plus tard.
                   </p>
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
                     <button
                       type="button"
                       onClick={() => setShowConfirmation(false)}
@@ -585,7 +588,8 @@ export default function LoginPage() {
                         color: '#374151',
                         border: 'none',
                         borderRadius: '6px',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        margin: 0
                       }}
                     >
                       Annuler
@@ -690,7 +694,8 @@ export default function LoginPage() {
                         border: 'none',
                         borderRadius: '6px',
                         cursor: loading ? 'not-allowed' : 'pointer',
-                        opacity: loading ? 0.5 : 1
+                        opacity: loading ? 0.5 : 1,
+                        margin: 0
                       }}
                     >
                       Confirmer
@@ -758,6 +763,7 @@ export default function LoginPage() {
                     </label>
                     <input
                       type="text"
+                      name="joinCode"
                       value={joinCode}
                       onChange={async (e) => {
                         const newCode = e.target.value.toUpperCase();
@@ -777,6 +783,7 @@ export default function LoginPage() {
                         }
                       }}
                       required
+                      autoComplete="off"
                       placeholder="Enter class code"
                       style={{
                         width: '100%',
@@ -794,6 +801,7 @@ export default function LoginPage() {
                     </label>
                     <input
                       type="text"
+                      name="fullName"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       required
@@ -816,10 +824,11 @@ export default function LoginPage() {
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <input
                         type="text"
+                        name="username"
                         value={generatedUsername || 'Click Regenerate to generate username'}
                         readOnly
                         required
-                        autoComplete="off"
+                        autoComplete="username"
                         style={{
                           flex: 1,
                           padding: '10px 12px',
@@ -881,6 +890,7 @@ export default function LoginPage() {
                     </label>
                     <input
                       type="password"
+                      name="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
@@ -902,6 +912,7 @@ export default function LoginPage() {
                     </label>
                     <input
                       type="password"
+                      name="confirmPassword"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       required
