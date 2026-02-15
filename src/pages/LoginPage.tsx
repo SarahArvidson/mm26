@@ -57,7 +57,6 @@ export default function LoginPage() {
   };
 
   const handleStudentLogin = async (e: React.FormEvent) => {
-    console.log('HANDLE STUDENT LOGIN CALLED');
     e.preventDefault();
     setError(null);
     setLoading(true);
@@ -67,12 +66,6 @@ export default function LoginPage() {
       setLoading(false);
       return;
     }
-
-    console.log('Calling signInStudent with:', {
-      username,
-      password,
-      joinCode
-    });
 
     const { error } = await signInStudent(username, password, joinCode);
     if (error) {

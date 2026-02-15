@@ -2,8 +2,6 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
 
-console.log('AUTH CONTEXT MODULE LOADED');
-
 interface StudentSession {
   type: 'student';
   student_id: string;
@@ -75,7 +73,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInStudent = async (username: string, password: string, joinCode: string) => {
-    console.log('signInStudent FUNCTION ENTERED');
     try {
       // Look up class by join_code
       const { data: classData, error: classError } = await supabase
@@ -83,9 +80,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .select('id')
         .eq('join_code', joinCode)
         .maybeSingle();
-
-      console.log('CLASS LOOKUP RESULT:', classData);
-      console.log('CLASS LOOKUP ERROR:', classError);
 
       if (classError || !classData) {
         return { error: { message: 'Invalid credentials' } };
@@ -99,34 +93,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('username', username)
         .maybeSingle();
 
-      console.log('STUDENT LOOKUP RESULT:', studentData);
-      console.log('STUDENT LOOKUP ERROR:', studentError);
-
       if (studentError || !studentData) {
         return { error: { message: 'Invalid credentials' } };
       }
 
       // Verify password using bcryptjs
       const bcrypt = await import('bcryptjs');
-
-      console.log('LOGIN DEBUG START');
-      console.log('Join code provided:', joinCode);
-      console.log('Username provided:', username);
-      console.log('Password provided:', password);
-
-      console.log('Class lookup result:', classData);
-      console.log('Student lookup result:', studentData);
-
-      if (studentData) {
-        console.log('Stored hash:', studentData.password_hash);
-      }
-
-      const isValid = studentData
-        ? await bcrypt.compare(password, studentData.password_hash)
-        : false;
-
-      console.log('bcrypt comparison result:', isValid);
-      console.log('LOGIN DEBUG END');
+      const isValid = await bcrypt.compare(password, studentData.password_hash);
 
       if (!isValid) {
         return { error: { message: 'Invalid credentials' } };
