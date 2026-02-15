@@ -186,13 +186,13 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
 
-    if (!username || !password || !joinCode) {
+    if (!username || !password) {
       setError('Please fill in all fields');
       setLoading(false);
       return;
     }
 
-    const { error } = await signInStudent(username, password, joinCode);
+    const { error } = await signInStudent(username, password);
     if (error) {
       setError(error.message);
       setLoading(false);
@@ -263,136 +263,304 @@ export default function LoginPage() {
             Back to Login
           </button>
         </form>
-        {error && <div>{error}</div>}
-        {message && <div>{message}</div>}
+        {error && (
+          <div style={{
+            marginTop: '16px',
+            padding: '12px',
+            backgroundColor: '#FEE2E2',
+            border: '1px solid #FCA5A5',
+            borderRadius: '8px',
+            color: '#DC2626',
+            fontSize: '14px',
+            textAlign: 'center'
+          }}>
+            {error}
+          </div>
+        )}
+        {message && (
+          <div style={{
+            marginTop: '16px',
+            padding: '12px',
+            backgroundColor: '#D1FAE5',
+            border: '1px solid #6EE7B7',
+            borderRadius: '8px',
+            color: '#065F46',
+            fontSize: '14px',
+            textAlign: 'center'
+          }}>
+            {message}
+          </div>
+        )}
       </div>
     );
   }
 
   return (
-    <div>
-      <h1>Login</h1>
-      <div>
-        <button onClick={() => setIsTeacher(true)}>Teacher</button>
-        <button onClick={() => setIsTeacher(false)}>Student</button>
+    <div style={{
+      maxWidth: '480px',
+      margin: '0 auto',
+      padding: '40px 20px',
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center'
+    }}>
+      {/* Branding Header */}
+      <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+        <h1 style={{
+          fontSize: '32px',
+          fontWeight: '700',
+          color: '#111827',
+          margin: '0 0 8px 0',
+          letterSpacing: '-0.5px'
+        }}>
+          Tableaumanie
+        </h1>
+        <p style={{
+          fontSize: '16px',
+          color: '#6B7280',
+          margin: '0',
+          fontWeight: '400'
+        }}>
+          Crée ton tableau, vote en classe, et vois ton classement
+        </p>
+      </div>
+
+      {/* Teacher/Student Toggle */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', justifyContent: 'center' }}>
+        <button 
+          onClick={() => setIsTeacher(true)}
+          style={{
+            padding: '10px 20px',
+            backgroundColor: isTeacher ? '#7C3AED' : '#E5E7EB',
+            color: isTeacher ? '#FFFFFF' : '#374151',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            fontSize: '14px',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          Teacher
+        </button>
+        <button 
+          onClick={() => setIsTeacher(false)}
+          style={{
+            padding: '10px 20px',
+            backgroundColor: !isTeacher ? '#7C3AED' : '#E5E7EB',
+            color: !isTeacher ? '#FFFFFF' : '#374151',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            fontSize: '14px',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          Student
+        </button>
       </div>
       {isTeacher ? (
-        <form onSubmit={handleTeacherLogin}>
+        <form onSubmit={handleTeacherLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
-            <label>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
               Email:
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
             </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                border: '1px solid #D1D5DB',
+                borderRadius: '8px',
+                fontSize: '14px',
+                boxSizing: 'border-box'
+              }}
+            />
           </div>
           <div>
-            <label>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
               Password:
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
             </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                border: '1px solid #D1D5DB',
+                borderRadius: '8px',
+                fontSize: '14px',
+                boxSizing: 'border-box'
+              }}
+            />
           </div>
-          <button type="submit" disabled={loading}>
+          <button 
+            type="submit" 
+            disabled={loading}
+            style={{
+              width: '100%',
+              padding: '12px',
+              backgroundColor: '#7C3AED',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              opacity: loading ? 0.6 : 1,
+              transition: 'opacity 0.2s ease'
+            }}
+          >
             {loading ? 'Logging in...' : 'Login'}
           </button>
-          <button type="button" onClick={() => setShowForgotPassword(true)}>
+          <button 
+            type="button" 
+            onClick={() => setShowForgotPassword(true)}
+            style={{
+              width: '100%',
+              padding: '10px',
+              backgroundColor: 'transparent',
+              color: '#7C3AED',
+              border: 'none',
+              fontSize: '14px',
+              cursor: 'pointer',
+              textDecoration: 'underline'
+            }}
+          >
             Forgot Password?
           </button>
+          <div style={{ textAlign: 'center', marginTop: '8px' }}>
+            <button
+              type="button"
+              onClick={() => {
+                // Teacher Sign Up would go here - placeholder for now
+                setError('Teacher registration is not yet available. Please contact your administrator.');
+              }}
+              style={{
+                backgroundColor: 'transparent',
+                border: 'none',
+                color: '#6B7280',
+                fontSize: '14px',
+                cursor: 'pointer',
+                textDecoration: 'none',
+                padding: '4px 0'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.textDecoration = 'underline';
+                e.currentTarget.style.color = '#374151';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.textDecoration = 'none';
+                e.currentTarget.style.color = '#6B7280';
+              }}
+            >
+              Pas encore de compte ? Créer un compte enseignant
+            </button>
+          </div>
         </form>
       ) : (
         <>
-          <div>
-            <button 
-              onClick={() => {
-                setIsSignUp(false);
-                setError(null);
-                setGeneratedUsername('');
-                setFullName('');
-                setPassword('');
-                setConfirmPassword('');
-                setShowConfirmation(false);
-              }}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: !isSignUp ? '#7C3AED' : '#E5E7EB',
-                color: !isSignUp ? '#FFFFFF' : '#374151',
-                border: 'none',
-                borderRadius: '6px',
-                marginRight: '8px',
-                cursor: 'pointer'
-              }}
-            >
-              Login
-            </button>
-            <button 
-              onClick={() => {
-                setIsSignUp(true);
-                setError(null);
-                setGeneratedUsername('');
-                setFullName('');
-                setPassword('');
-                setConfirmPassword('');
-                setShowConfirmation(false);
-              }}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: isSignUp ? '#7C3AED' : '#E5E7EB',
-                color: isSignUp ? '#FFFFFF' : '#374151',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer'
-              }}
-            >
-              Sign Up
-            </button>
-          </div>
           {!isSignUp ? (
-            <form onSubmit={handleStudentLogin}>
+            <form onSubmit={handleStudentLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label>
-                  Class Join Code:
-                  <input
-                    type="text"
-                    value={joinCode}
-                    onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                    required
-                    placeholder="Enter class code"
-                  />
-                </label>
-              </div>
-              <div>
-                <label>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
                   Username:
-                  <input
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
-                  />
                 </label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                  autoComplete="username"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+                />
               </div>
               <div>
-                <label>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
                   Password:
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
                 </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+                />
               </div>
-              <button type="submit" disabled={loading}>
+              <button 
+                type="submit" 
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  backgroundColor: '#7C3AED',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.6 : 1,
+                  transition: 'opacity 0.2s ease'
+                }}
+              >
                 {loading ? 'Logging in...' : 'Login'}
               </button>
+              <div style={{ textAlign: 'center', marginTop: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSignUp(true);
+                    setError(null);
+                    setGeneratedUsername('');
+                    setFullName('');
+                    setPassword('');
+                    setConfirmPassword('');
+                    setShowConfirmation(false);
+                  }}
+                  style={{
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    color: '#6B7280',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    textDecoration: 'none',
+                    padding: '4px 0'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.textDecoration = 'underline';
+                    e.currentTarget.style.color = '#374151';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.textDecoration = 'none';
+                    e.currentTarget.style.color = '#6B7280';
+                  }}
+                >
+                  Pas encore inscrit(e) ? Créer un compte
+                </button>
+              </div>
             </form>
           ) : (
             <>
@@ -500,7 +668,7 @@ export default function LoginPage() {
                           }
 
                           // Auto-login using custom student auth (not Supabase auth)
-                          const { error: loginError } = await signInStudent(generatedUsername, password, joinCode.toUpperCase());
+                          const { error: loginError } = await signInStudent(generatedUsername, password);
                           if (loginError) {
                             setError('Account created but login failed. Please log in manually.');
                             setLoading(false);
@@ -583,141 +751,244 @@ export default function LoginPage() {
 
                   // Show confirmation
                   setShowConfirmation(true);
-                }}>
+                }} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <div>
-                    <label>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
                       Class Join Code:
-                      <input
-                        type="text"
-                        value={joinCode}
-                        onChange={async (e) => {
-                          const newCode = e.target.value.toUpperCase();
-                          setJoinCode(newCode);
-                          // Auto-generate username when join code is entered
-                          if (newCode.length === 6 && !generatedUsername) {
-                            const { data: classData } = await supabase
-                              .from('classes')
-                              .select('id')
-                              .eq('join_code', newCode)
-                              .maybeSingle();
-                            
-                            if (classData) {
-                              const uniqueUsername = await generateUniqueUsername(classData.id);
-                              setGeneratedUsername(uniqueUsername);
-                            }
-                          }
-                        }}
-                        required
-                        placeholder="Enter class code"
-                      />
                     </label>
-                  </div>
-                  <div>
-                    <label>
-                      Full Name:
-                      <input
-                        type="text"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                        required
-                        placeholder="Your full name"
-                      />
-                    </label>
-                  </div>
-                  <div>
-                    <label>
-                      Username:
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <input
-                          type="text"
-                          value={generatedUsername || 'Click Regenerate to generate username'}
-                          readOnly
-                          required
-                          autoComplete="off"
-                          style={{
-                            flex: 1,
-                            backgroundColor: '#F3F4F6',
-                            cursor: 'not-allowed',
-                            color: generatedUsername ? '#111827' : '#9CA3AF'
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            if (!joinCode) {
-                              setError('Please enter join code first');
-                              return;
-                            }
-                            setError(null);
-                            
-                            // Look up class
-                            const { data: classData, error: classError } = await supabase
-                              .from('classes')
-                              .select('id')
-                              .eq('join_code', joinCode.toUpperCase())
-                              .maybeSingle();
-
-                            if (classError || !classData) {
-                              setError('Invalid join code');
-                              return;
-                            }
-
-                            // Generate unique username
+                    <input
+                      type="text"
+                      value={joinCode}
+                      onChange={async (e) => {
+                        const newCode = e.target.value.toUpperCase();
+                        setJoinCode(newCode);
+                        // Auto-generate username when join code is entered
+                        if (newCode.length === 6 && !generatedUsername) {
+                          const { data: classData } = await supabase
+                            .from('classes')
+                            .select('id')
+                            .eq('join_code', newCode)
+                            .maybeSingle();
+                          
+                          if (classData) {
                             const uniqueUsername = await generateUniqueUsername(classData.id);
                             setGeneratedUsername(uniqueUsername);
-                          }}
-                          disabled={!joinCode}
-                          style={{
-                            padding: '8px 16px',
-                            backgroundColor: '#10B981',
-                            color: '#FFFFFF',
-                            border: 'none',
-                            borderRadius: '6px',
-                            cursor: !joinCode ? 'not-allowed' : 'pointer',
-                            opacity: !joinCode ? 0.5 : 1
-                          }}
-                        >
-                          {generatedUsername ? 'Regenerate' : 'Generate'}
-                        </button>
-                      </div>
-                    </label>
+                          }
+                        }
+                      }}
+                      required
+                      placeholder="Enter class code"
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        border: '1px solid #D1D5DB',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
                   </div>
                   <div>
-                    <label>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+                      Full Name:
+                    </label>
+                    <input
+                      type="text"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      required
+                      placeholder="Your full name"
+                      autoComplete="name"
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        border: '1px solid #D1D5DB',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+                      Username:
+                    </label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        type="text"
+                        value={generatedUsername || 'Click Regenerate to generate username'}
+                        readOnly
+                        required
+                        autoComplete="off"
+                        style={{
+                          flex: 1,
+                          padding: '10px 12px',
+                          backgroundColor: '#F3F4F6',
+                          border: '1px solid #D1D5DB',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          cursor: 'not-allowed',
+                          color: generatedUsername ? '#111827' : '#9CA3AF',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!joinCode) {
+                            setError('Please enter join code first');
+                            return;
+                          }
+                          setError(null);
+                          
+                          // Look up class
+                          const { data: classData, error: classError } = await supabase
+                            .from('classes')
+                            .select('id')
+                            .eq('join_code', joinCode.toUpperCase())
+                            .maybeSingle();
+
+                          if (classError || !classData) {
+                            setError('Invalid join code');
+                            return;
+                          }
+
+                          // Generate unique username
+                          const uniqueUsername = await generateUniqueUsername(classData.id);
+                          setGeneratedUsername(uniqueUsername);
+                        }}
+                        disabled={!joinCode}
+                        style={{
+                          padding: '10px 16px',
+                          backgroundColor: '#10B981',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          cursor: !joinCode ? 'not-allowed' : 'pointer',
+                          opacity: !joinCode ? 0.5 : 1,
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {generatedUsername ? 'Regenerate' : 'Generate'}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
                       Password:
-                      <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        minLength={6}
-                        autoComplete="new-password"
-                      />
                     </label>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      minLength={6}
+                      autoComplete="new-password"
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        border: '1px solid #D1D5DB',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
                   </div>
                   <div>
-                    <label>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
                       Confirm Password:
-                      <input
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        required
-                        minLength={6}
-                        autoComplete="new-password"
-                      />
                     </label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                      minLength={6}
+                      autoComplete="new-password"
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        border: '1px solid #D1D5DB',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
                   </div>
-                  <button type="submit" disabled={loading || !generatedUsername}>
-                    {loading ? 'Creating...' : 'Create Account'}
+                  <button 
+                    type="submit" 
+                    disabled={loading || !generatedUsername}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      backgroundColor: '#7C3AED',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      cursor: (loading || !generatedUsername) ? 'not-allowed' : 'pointer',
+                      opacity: (loading || !generatedUsername) ? 0.6 : 1,
+                      transition: 'opacity 0.2s ease'
+                    }}
+                  >
+                    {loading ? 'Creating...' : 'Créer mon compte'}
                   </button>
+                  <div style={{ textAlign: 'center', marginTop: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSignUp(false);
+                        setError(null);
+                        setGeneratedUsername('');
+                        setFullName('');
+                        setPassword('');
+                        setConfirmPassword('');
+                        setShowConfirmation(false);
+                      }}
+                      style={{
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        color: '#6B7280',
+                        fontSize: '14px',
+                        cursor: 'pointer',
+                        textDecoration: 'none',
+                        padding: '4px 0'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.textDecoration = 'underline';
+                        e.currentTarget.style.color = '#374151';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.textDecoration = 'none';
+                        e.currentTarget.style.color = '#6B7280';
+                      }}
+                    >
+                      Déjà inscrit(e) ? Se connecter
+                    </button>
+                  </div>
                 </form>
               )}
             </>
           )}
         </>
       )}
-      {error && <div>{error}</div>}
+      {error && (
+        <div style={{
+          marginTop: '16px',
+          padding: '12px',
+          backgroundColor: '#FEE2E2',
+          border: '1px solid #FCA5A5',
+          borderRadius: '8px',
+          color: '#DC2626',
+          fontSize: '14px',
+          textAlign: 'center'
+        }}>
+          {error}
+        </div>
+      )}
     </div>
   );
 }

@@ -14,7 +14,7 @@ interface AuthContextType {
   studentSession: StudentSession | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signInStudent: (username: string, password: string, joinCode: string) => Promise<{ error: any }>;
+  signInStudent: (username: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any }>;
 }
@@ -72,24 +72,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error };
   };
 
-  const signInStudent = async (username: string, password: string, joinCode: string) => {
+  const signInStudent = async (username: string, password: string) => {
     try {
-      // Look up class by join_code
-      const { data: classData, error: classError } = await supabase
-        .from('classes')
-        .select('id')
-        .eq('join_code', joinCode)
-        .maybeSingle();
-
-      if (classError || !classData) {
-        return { error: { message: 'Invalid credentials' } };
-      }
-
-      // Find student by class_id and username
+      // Find student by username (usernames are unique per class, so this will find the correct student)
       const { data: studentData, error: studentError } = await supabase
         .from('students')
         .select('id, class_id, password_hash')
-        .eq('class_id', classData.id)
         .eq('username', username)
         .maybeSingle();
 
