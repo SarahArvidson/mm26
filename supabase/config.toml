@@ -1,0 +1,2 @@
+[functions.resolve-student]
+verify_jwt = false

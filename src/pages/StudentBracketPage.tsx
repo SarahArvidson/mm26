@@ -1,6 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import {
   resolveActiveSeason,
@@ -23,10 +22,10 @@ import {
 import RoundAccuracyPie from '../components/charts/RoundAccuracyPie';
 
 export default function StudentBracketPage() {
-  const { studentSession } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentStudentId, setCurrentStudentId] = useState<string | null>(null);
   const [activeSeason, setActiveSeason] = useState<Season | null>(null);
   const [matchups, setMatchups] = useState<BracketMatchup[]>([]);
   const [songs, setSongs] = useState<Song[]>([]);
@@ -103,17 +102,59 @@ export default function StudentBracketPage() {
 
 
   useEffect(() => {
-    // Redirect to login if no student session
-    if (!studentSession) {
-      navigate('/login');
-      return;
-    }
-    
-    loadData();
-  }, [studentSession, navigate]);
+    const checkAuth = async () => {
+      // Check for session and matching student row
+      const { data: { session } } = await supabase.supabase.auth.getSession();
+      if (!session?.user) {
+        navigate('/login');
+        return;
+      }
 
-  const loadData = async () => {
-    if (!studentSession) return;
+      // Verify student row exists
+      const { data: studentData } = await supabase
+        .from('students')
+        .select('id, class_id')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      if (!studentData) {
+        navigate('/login');
+        return;
+      }
+
+      // Session and student row exist - allow access
+      // Store session user id for use in loadData and render
+      setCurrentStudentId(session.user.id);
+      loadData(session.user.id, studentData.class_id);
+    };
+
+    checkAuth();
+  }, [navigate]);
+
+  const loadData = async (studentId?: string, classId?: string) => {
+    // Session is already verified in useEffect
+    // If studentId/classId not provided, get from session
+    if (!studentId || !classId) {
+      const { data: { session } } = await supabase.supabase.auth.getSession();
+      if (!session?.user) {
+        navigate('/login');
+        return;
+      }
+      studentId = session.user.id;
+      const { data: studentData } = await supabase
+        .from('students')
+        .select('class_id')
+        .eq('id', studentId)
+        .maybeSingle();
+      if (!studentData) {
+        navigate('/login');
+        return;
+      }
+      classId = studentData.class_id;
+    }
+
+    const currentStudentId = studentId;
+    const currentClassId = classId;
 
     try {
       setLoading(true);
@@ -159,13 +200,23 @@ export default function StudentBracketPage() {
       setSongs(songsTyped);
 
       // Fetch or create student bracket using non-destructive upsert
+      const { data: { session } } = await supabase.supabase.auth.getSession();
+
+      if (!session?.user) {
+        throw new Error('No authenticated session');
+      }
+
+      const payload = {
+        student_id: session.user.id,
+        season_id: active.id,
+      };
+
+      console.log('student_brackets write', { authUid: session.user.id, payloadStudentId: payload.student_id });
+
       const { data: bracketData, error: bracketError } = await supabase
         .from('student_brackets')
         .upsert(
-          {
-            student_id: studentSession.student_id,
-            season_id: active.id,
-          },
+          payload,
           {
             onConflict: 'student_id,season_id'
           }
@@ -201,7 +252,7 @@ export default function StudentBracketPage() {
       const { data: classStudentsData, error: classStudentsError } = await supabase
         .from('students')
         .select('id, username')
-        .eq('class_id', studentSession.class_id);
+        .eq('class_id', currentClassId);
 
       if (classStudentsError) throw classStudentsError;
       const studentNames = new Map<UUID, string>();
@@ -243,7 +294,7 @@ export default function StudentBracketPage() {
       setLeaderboard(sortedLeaderboard);
 
       // Compute current student's rank and breakdown
-      const rank = getStudentRank(studentSession.student_id, sortedLeaderboard);
+      const rank = getStudentRank(currentStudentId, sortedLeaderboard);
       setStudentRank(rank);
 
       // Calculate per-round scores from picks and master results
@@ -307,8 +358,6 @@ export default function StudentBracketPage() {
 
   const handleFinalize = async () => {
    const { data: authData } = await supabase.supabase.auth.getUser()
-
-console.log("AUTH USER ID:", authData.user?.id)
     if (!studentBracket || studentBracket.finalized || finalizing) return;
 
     try {
@@ -770,7 +819,7 @@ console.log("AUTH USER ID:", authData.user?.id)
                 </thead>
                 <tbody>
                   {leaderboard.map((score, index) => {
-                    const isCurrentStudent = score.student_id === studentSession?.student_id;
+                    const isCurrentStudent = score.student_id === currentStudentId;
                     const isTopThree = index < 3;
                     return (
                       <tr

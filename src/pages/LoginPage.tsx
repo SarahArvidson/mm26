@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -20,6 +20,9 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [studentMatches, setStudentMatches] = useState<Array<{ id: string; auth_email: string; class_id: string; class_name: string }>>([]);
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  const studentLoginInFlight = useRef(false);
   const { signIn, resetPassword } = useAuth();
 
   // Username generation word banks
@@ -230,57 +233,168 @@ export default function LoginPage() {
 
   const handleStudentLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setLoading(true);
-
-    if (!username || !password) {
-      setError('Please fill in all fields');
-      setLoading(false);
+    
+    // Prevent double-submit
+    if (studentLoginInFlight.current) {
       return;
     }
+    
+    setError(null);
+    setLoading(true);
+    studentLoginInFlight.current = true;
 
     try {
-      // Construct email from username
-      const email = `${username}@class.student`;
+      if (!username || !password) {
+        setError('Please fill in all fields');
+        setLoading(false);
+        return;
+      }
 
-      // Sign in with Supabase auth
-      const { data: authData, error: authError } = await supabase.supabase.auth.signInWithPassword({
-        email,
-        password,
+      const normalizedUsername = username.trim();
+      console.log('start lookup:', normalizedUsername);
+
+      // If class picker is shown and a student is selected, proceed with sign-in
+      if (studentMatches.length > 1 && selectedStudentId) {
+        await performSignIn(selectedStudentId);
+        return;
+      }
+
+      // Resolve student by username via Edge Function (bypasses RLS)
+      const { data: functionData, error: functionError } = await supabase.supabase.functions.invoke('resolve-student', {
+        body: { username: normalizedUsername }
       });
 
-      if (authError) {
-        setError(authError.message || 'Invalid credentials');
+      if (functionError || !functionData) {
+        console.log('student matches: error');
+        setError('Unknown student');
         setLoading(false);
         return;
       }
 
-      if (!authData.user) {
-        setError('Login failed');
+      const matches = functionData?.matches ?? [];
+
+      console.log('student matches usernames', matches?.map((m: { id: string; class_id: string; auth_email: string }) => ({ id: m.id, class_id: m.class_id, auth_email: m.auth_email })));
+
+      const matchCount = matches?.length || 0;
+      console.log('student matches:', matchCount);
+
+      if (matchCount === 0) {
+        setError('Unknown student');
         setLoading(false);
         return;
       }
 
-      // Query students table to verify student exists
-      const { data: studentData, error: studentError } = await supabase
-        .from('students')
-        .select('id, class_id')
-        .eq('id', authData.user.id)
-        .single();
-
-      if (studentError || !studentData) {
-        setError('Student record not found');
-        setLoading(false);
+      if (matchCount === 1) {
+        // Single match - use it directly
+        const studentRow = matches[0];
+        await performSignIn(studentRow.id, studentRow);
         return;
       }
 
-      // Success - redirect to student bracket
-      // studentSession will be set automatically by AuthContext useEffect
-      navigate('/student-bracket');
+      // Multiple matches - show class picker
+      setStudentMatches(matches as Array<{ id: string; auth_email: string; class_id: string; class_name: string }>);
+      
+      // Check localStorage for remembered student selection
+      const rememberedStudentId = localStorage.getItem(`student_class_${normalizedUsername}`);
+      const typedMatches = matches as Array<{ id: string; auth_email: string; class_id: string; class_name: string }>;
+      if (rememberedStudentId && typedMatches.some(m => m.id === rememberedStudentId)) {
+        setSelectedStudentId(rememberedStudentId);
+        console.log('class picker shown: false (remembered)');
+        await performSignIn(rememberedStudentId, typedMatches.find(m => m.id === rememberedStudentId));
+        return;
+      }
+
+      console.log('class picker shown: true');
       setLoading(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
       setLoading(false);
+    } finally {
+      studentLoginInFlight.current = false;
+    }
+  };
+
+  const performSignIn = async (studentId: string, studentRow?: { id: string; auth_email: string; class_id: string; class_name?: string }) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Get student row if not provided
+      let targetStudent = studentRow;
+      if (!targetStudent) {
+        targetStudent = studentMatches.find(m => m.id === studentId);
+      }
+
+      if (!targetStudent?.auth_email) {
+        setError('Student data not found');
+        setLoading(false);
+        return;
+      }
+
+      // Sign in with Supabase auth using auth_email
+      const { data: authData, error: authError } = await supabase.supabase.auth.signInWithPassword({
+        email: targetStudent.auth_email,
+        password,
+      });
+
+      if (authError || !authData.user) {
+        console.log('sign-in ok: false');
+        setError('Incorrect password');
+        setLoading(false);
+        return;
+      }
+
+      console.log('sign-in ok');
+
+      // Wait for session to exist before navigating (retry loop, max 10 tries, 50ms delay)
+      let sessionExists = false;
+      let sessionUser: { id: string } | null = null;
+      for (let i = 0; i < 10; i++) {
+        const { data: sessionData } = await supabase.supabase.auth.getSession();
+        if (sessionData?.session?.user) {
+          sessionExists = true;
+          sessionUser = sessionData.session.user;
+          break;
+        }
+        // Wait 50ms before next try
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+
+      if (!sessionExists || !sessionUser) {
+        await supabase.supabase.auth.signOut();
+        console.log('session ok: false');
+        setError('Login failed, try again');
+        setLoading(false);
+        return;
+      }
+
+      // Verify user.id matches student.id
+      if (sessionUser.id !== targetStudent.id) {
+        await supabase.supabase.auth.signOut();
+        console.log('uid match ok: false');
+        setError('Login mismatch, try again');
+        setLoading(false);
+        return;
+      }
+
+      console.log('session ok');
+      console.log('uid match ok');
+
+      // Remember selected class in localStorage
+      if (studentMatches.length > 1) {
+        const normalizedUsername = username.trim();
+        localStorage.setItem(`student_class_${normalizedUsername}`, targetStudent.id);
+      }
+
+      // Success - redirect to student bracket
+      console.log('navigate');
+      navigate('/student-bracket', { replace: true });
+      setLoading(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed');
+      setLoading(false);
+    } finally {
+      studentLoginInFlight.current = false;
     }
   };
 
@@ -721,50 +835,134 @@ export default function LoginPage() {
       ) : (
         <>
           {!isSignUp ? (
-            <form onSubmit={handleStudentLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
-                  Username:
-                </label>
-                <input
-                  type="text"
-                  name="username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  required
-                  autoComplete="username"
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    border: '1px solid #D1D5DB',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
-                  Password:
-                </label>
-                <input
-                  type="password"
-                  name="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  autoComplete="current-password"
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    border: '1px solid #D1D5DB',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-              <button 
+            <>
+              {studentMatches.length > 1 && !selectedStudentId ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <p style={{ fontSize: '14px', color: '#374151', textAlign: 'center' }}>
+                    This username exists in multiple classes. Please select your class:
+                  </p>
+                  {studentMatches.map((match) => (
+                    <button
+                      key={match.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedStudentId(match.id);
+                        handleStudentLogin({ preventDefault: () => {} } as React.FormEvent);
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        backgroundColor: '#FFFFFF',
+                        border: '2px solid #7C3AED',
+                        borderRadius: '8px',
+                        fontSize: '16px',
+                        fontWeight: '600',
+                        color: '#7C3AED',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#F3E8FF';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '#FFFFFF';
+                      }}
+                    >
+                      {match.class_name || 'Class'}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStudentMatches([]);
+                      setSelectedStudentId(null);
+                      setError(null);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      fontSize: '14px',
+                      color: '#6B7280',
+                      cursor: 'pointer',
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    Back
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleStudentLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+                      Username:
+                    </label>
+                    <input
+                      type="text"
+                      name="username"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      required
+                      autoComplete="username"
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        border: '1px solid #D1D5DB',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+                      Password:
+                    </label>
+                    <input
+                      type="password"
+                      name="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      autoComplete="current-password"
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        border: '1px solid #D1D5DB',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                  {error && (
+                    <div style={{
+                      padding: '12px',
+                      backgroundColor: '#FEE2E2',
+                      border: '1px solid #FCA5A5',
+                      borderRadius: '8px',
+                      color: '#DC2626',
+                      fontSize: '14px',
+                      textAlign: 'center'
+                    }}>
+                      {error}
+                    </div>
+                  )}
+                  {message && (
+                    <div style={{
+                      padding: '12px',
+                      backgroundColor: '#D1FAE5',
+                      border: '1px solid #6EE7B7',
+                      borderRadius: '8px',
+                      color: '#065F46',
+                      fontSize: '14px',
+                      textAlign: 'center'
+                    }}>
+                      {message}
+                    </div>
+                  )}
+                  <button 
                 type="submit" 
                 disabled={loading}
                 style={{
@@ -817,6 +1015,8 @@ export default function LoginPage() {
                 </button>
               </div>
             </form>
+              )}
+            </>
           ) : (
             <>
               {showConfirmation ? (
@@ -887,21 +1087,26 @@ export default function LoginPage() {
                             body: {
                               join_code: joinCode.toUpperCase(),
                               full_name: fullName.trim(),
-                              username: generatedUsername,
+                              username: generatedUsername.trim(),
                               password: password,
                             },
                           });
 
-                          if (functionError || !functionData) {
+                          if (functionError) {
                             setError(functionError?.message || functionData?.error || 'Registration failed');
                             setLoading(false);
                             return;
                           }
 
-                          // Sign in student using Supabase auth
-                          const studentEmail = `${generatedUsername}@class.student`;
+                          if (!functionData?.auth_email) {
+                            setError('Registration succeeded but login email was not returned');
+                            setLoading(false);
+                            return;
+                          }
+
+                          // Sign in student using Supabase auth with returned auth_email
                           const { error: signInError } = await supabase.supabase.auth.signInWithPassword({
-                            email: studentEmail,
+                            email: functionData.auth_email,
                             password,
                           });
 
@@ -1219,7 +1424,7 @@ export default function LoginPage() {
           )}
         </>
       )}
-      {error && (
+      {error && isTeacher && (
         <div style={{
           marginTop: '16px',
           padding: '12px',
