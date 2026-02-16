@@ -306,6 +306,9 @@ export default function StudentBracketPage() {
   };
 
   const handleFinalize = async () => {
+   const { data: authData } = await supabase.supabase.auth.getUser()
+
+console.log("AUTH USER ID:", authData.user?.id)
     if (!studentBracket || studentBracket.finalized || finalizing) return;
 
     try {
@@ -1095,7 +1098,7 @@ export default function StudentBracketPage() {
                                 borderRadius: '9999px'
                               }}
                             >
-                              Eliminated
+                              Elimininée
                             </span>
                           )}
                         </button>
