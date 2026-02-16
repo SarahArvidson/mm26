@@ -10,6 +10,7 @@ import InstructionsPage from './pages/InstructionsPage';
 import SettingsPage from './pages/SettingsPage';
 import EmbedBracketPage from './pages/EmbedBracketPage';
 import PrintBracketPage from './pages/PrintBracketPage';
+import CompleteProfilePage from './pages/CompleteProfilePage';
 import './App.css';
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
             <Route path="login" element={<LoginPage />} />
             <Route path="student-bracket" element={<StudentBracketPage />} />
             <Route path="teacher-dashboard" element={<TeacherDashboardPage />} />
+            <Route path="complete-profile" element={<CompleteProfilePage />} />
             <Route path="master-bracket" element={<MasterBracketPage />} />
             <Route path="video-library" element={<VideoLibraryPage />} />
             <Route path="instructions" element={<InstructionsPage />} />

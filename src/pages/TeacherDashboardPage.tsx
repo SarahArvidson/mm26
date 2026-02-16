@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import {
@@ -30,6 +31,7 @@ interface Class {
 
 export default function TeacherDashboardPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeSeason, setActiveSeason] = useState<Season | null>(null);
@@ -51,7 +53,32 @@ export default function TeacherDashboardPage() {
 
   useEffect(() => {
     if (!user) return;
-    loadData();
+    
+    // Check if teacher profile exists
+    const checkTeacherProfile = async () => {
+      const { data: teacherData, error: teacherError } = await supabase
+        .from('teachers')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (teacherError) {
+        setError(teacherError.message || 'Failed to check teacher profile');
+        setLoading(false);
+        return;
+      }
+
+      if (!teacherData) {
+        // Teacher profile does not exist, redirect to complete profile
+        navigate('/complete-profile');
+        return;
+      }
+
+      // Teacher profile exists, proceed with loadData
+      loadData();
+    };
+
+    checkTeacherProfile();
   }, [user]);
 
   useEffect(() => {

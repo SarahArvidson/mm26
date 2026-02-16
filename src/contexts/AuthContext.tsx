@@ -14,14 +14,11 @@ interface AuthContextType {
   studentSession: StudentSession | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signInStudent: (username: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const STUDENT_SESSION_KEY = 'mm26_student_session';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any>(null);
@@ -29,21 +26,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [studentSession, setStudentSession] = useState<StudentSession | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Load student session when user changes
   useEffect(() => {
-    // Load student session from localStorage
-    const storedStudentSession = localStorage.getItem(STUDENT_SESSION_KEY);
-    if (storedStudentSession) {
-      try {
-        const parsed = JSON.parse(storedStudentSession);
-        if (parsed.type === 'student' && parsed.student_id && parsed.class_id) {
-          setStudentSession(parsed);
-        }
-      } catch (e) {
-        // Invalid session, clear it
-        localStorage.removeItem(STUDENT_SESSION_KEY);
-      }
-    }
+    let cancelled = false;
 
+    const updateStudentSession = async () => {
+      if (!user?.id) {
+        if (!cancelled) setStudentSession(null);
+        return;
+      }
+
+      // Check if user email ends with @class.student to identify student
+      const email = user.email || '';
+      if (!email.endsWith('@class.student')) {
+        if (!cancelled) setStudentSession(null);
+        return;
+      }
+
+      // Load student data
+      const { data: studentData } = await supabase
+        .from('students')
+        .select('id, class_id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (studentData) {
+        setStudentSession({
+          type: 'student',
+          student_id: studentData.id,
+          class_id: studentData.class_id,
+        });
+      } else {
+        setStudentSession(null);
+      }
+    };
+
+    updateStudentSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  useEffect(() => {
     // Get initial Supabase session
     supabase.getSession().then(({ data }) => {
       if (data.session) {
@@ -72,53 +99,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error };
   };
 
-  const signInStudent = async (username: string, password: string) => {
-    try {
-      // Find student by username (usernames are unique per class, so this will find the correct student)
-      const { data: studentData, error: studentError } = await supabase
-        .from('students')
-        .select('id, class_id, password_hash')
-        .eq('username', username)
-        .maybeSingle();
-
-      if (studentError || !studentData) {
-        return { error: { message: 'Invalid credentials' } };
-      }
-
-      // Verify password using bcryptjs
-      const bcrypt = await import('bcryptjs');
-      const isValid = await bcrypt.compare(password, studentData.password_hash);
-
-      if (!isValid) {
-        return { error: { message: 'Invalid credentials' } };
-      }
-
-      // Create student session
-      const studentSession: StudentSession = {
-        type: 'student',
-        student_id: studentData.id,
-        class_id: studentData.class_id,
-      };
-
-      // Store in localStorage
-      localStorage.setItem(STUDENT_SESSION_KEY, JSON.stringify(studentSession));
-      setStudentSession(studentSession);
-
-      return { error: null };
-    } catch (error) {
-      return { error: { message: 'Login failed. Please try again.' } };
-    }
-  };
-
   const signOut = async () => {
     // Clear Supabase session
     await supabase.signOut();
     setUser(null);
     setSession(null);
-
-    // Clear student session
-    localStorage.removeItem(STUDENT_SESSION_KEY);
-    setStudentSession(null);
   };
 
   const resetPassword = async (email: string) => {
@@ -135,7 +120,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         studentSession,
         loading,
         signIn,
-        signInStudent,
         signOut,
         resetPassword,
       }}

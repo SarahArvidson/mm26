@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 export default function LoginPage() {
   const navigate = useNavigate();
   const [isTeacher, setIsTeacher] = useState(true);
+  const [isTeacherSignUp, setIsTeacherSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -19,7 +20,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { signIn, signInStudent, resetPassword } = useAuth();
+  const { signIn, resetPassword } = useAuth();
 
   // Username generation word banks
   const artistNames = [
@@ -141,6 +142,51 @@ export default function LoginPage() {
     return newUsername;
   };
 
+  const handleTeacherSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setMessage(null);
+    setLoading(true);
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      setLoading(false);
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const { data, error: signUpError } = await supabase.supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (signUpError) {
+        setError(signUpError.message);
+        setLoading(false);
+        return;
+      }
+
+      if (data.user) {
+        // Email confirmation required
+        setMessage('Vérifie ton email pour confirmer ton compte');
+        setEmail('');
+        setPassword('');
+        setConfirmPassword('');
+        setIsTeacherSignUp(false);
+      }
+      setLoading(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create account');
+      setLoading(false);
+    }
+  };
+
   const handleTeacherLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -174,7 +220,8 @@ export default function LoginPage() {
         if (teacherData) {
           navigate('/teacher-dashboard');
         } else {
-          setError('User not found in teachers table');
+          // No teacher row exists, redirect to complete profile
+          navigate('/complete-profile');
         }
       }
       setLoading(false);
@@ -192,16 +239,49 @@ export default function LoginPage() {
       return;
     }
 
-    const { error } = await signInStudent(username, password);
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-      return;
-    }
+    try {
+      // Construct email from username
+      const email = `${username}@class.student`;
 
-    // Success - redirect to student bracket
-    navigate('/student-bracket');
-    setLoading(false);
+      // Sign in with Supabase auth
+      const { data: authData, error: authError } = await supabase.supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) {
+        setError(authError.message || 'Invalid credentials');
+        setLoading(false);
+        return;
+      }
+
+      if (!authData.user) {
+        setError('Login failed');
+        setLoading(false);
+        return;
+      }
+
+      // Query students table to verify student exists
+      const { data: studentData, error: studentError } = await supabase
+        .from('students')
+        .select('id, class_id')
+        .eq('id', authData.user.id)
+        .single();
+
+      if (studentError || !studentData) {
+        setError('Student record not found');
+        setLoading(false);
+        return;
+      }
+
+      // Success - redirect to student bracket
+      // studentSession will be set automatically by AuthContext useEffect
+      navigate('/student-bracket');
+      setLoading(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed');
+      setLoading(false);
+    }
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
@@ -322,7 +402,7 @@ export default function LoginPage() {
           margin: '0',
           fontWeight: '400'
         }}>
-          Crée ton tableau, vote en classe, et vois ton classement
+          Crée ton tableau, vote en classe, et vois ton rang
         </p>
       </div>
 
@@ -362,109 +442,282 @@ export default function LoginPage() {
         </button>
       </div>
       {isTeacher ? (
-        <form onSubmit={handleTeacherLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
-              Email:
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
+        isTeacherSignUp ? (
+          <form onSubmit={handleTeacherSignUp} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+                Email:
+              </label>
+              <input
+                type="email"
+                name="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #D1D5DB',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+                Password:
+              </label>
+              <input
+                type="password"
+                name="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="new-password"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #D1D5DB',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+                Confirm Password:
+              </label>
+              <input
+                type="password"
+                name="confirmPassword"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                autoComplete="new-password"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #D1D5DB',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+            {error && (
+              <div style={{
+                padding: '12px',
+                backgroundColor: '#FEE2E2',
+                border: '1px solid #FCA5A5',
+                borderRadius: '8px',
+                color: '#DC2626',
+                fontSize: '14px',
+                textAlign: 'center'
+              }}>
+                {error}
+              </div>
+            )}
+            {message && (
+              <div style={{
+                padding: '12px',
+                backgroundColor: '#D1FAE5',
+                border: '1px solid #6EE7B7',
+                borderRadius: '8px',
+                color: '#065F46',
+                fontSize: '14px',
+                textAlign: 'center'
+              }}>
+                {message}
+              </div>
+            )}
+            <button 
+              type="submit" 
+              disabled={loading}
               style={{
                 width: '100%',
-                padding: '10px 12px',
-                border: '1px solid #D1D5DB',
-                borderRadius: '8px',
-                fontSize: '14px',
-                boxSizing: 'border-box'
-              }}
-            />
-          </div>
-          <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
-              Password:
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                border: '1px solid #D1D5DB',
-                borderRadius: '8px',
-                fontSize: '14px',
-                boxSizing: 'border-box'
-              }}
-            />
-          </div>
-          <button 
-            type="submit" 
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: '12px',
-              backgroundColor: '#7C3AED',
-              color: '#FFFFFF',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '16px',
-              fontWeight: '600',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              opacity: loading ? 0.6 : 1,
-              transition: 'opacity 0.2s ease'
-            }}
-          >
-            {loading ? 'Logging in...' : 'Login'}
-          </button>
-          <button 
-            type="button" 
-            onClick={() => setShowForgotPassword(true)}
-            style={{
-              width: '100%',
-              padding: '10px',
-              backgroundColor: 'transparent',
-              color: '#7C3AED',
-              border: 'none',
-              fontSize: '14px',
-              cursor: 'pointer',
-              textDecoration: 'underline'
-            }}
-          >
-            Forgot Password?
-          </button>
-          <div style={{ textAlign: 'center', marginTop: '8px' }}>
-            <button
-              type="button"
-              onClick={() => {
-                // Teacher Sign Up would go here - placeholder for now
-                setError('Teacher registration is not yet available. Please contact your administrator.');
-              }}
-              style={{
-                backgroundColor: 'transparent',
+                padding: '12px',
+                backgroundColor: '#7C3AED',
+                color: '#FFFFFF',
                 border: 'none',
-                color: '#6B7280',
-                fontSize: '14px',
-                cursor: 'pointer',
-                textDecoration: 'none',
-                padding: '4px 0'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.textDecoration = 'underline';
-                e.currentTarget.style.color = '#374151';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.textDecoration = 'none';
-                e.currentTarget.style.color = '#6B7280';
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                opacity: loading ? 0.6 : 1,
+                transition: 'opacity 0.2s ease'
               }}
             >
-              Pas encore de compte ? Créer un compte enseignant
+              {loading ? 'Creating...' : 'Créer mon compte'}
             </button>
-          </div>
-        </form>
+            <div style={{ textAlign: 'center', marginTop: '8px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsTeacherSignUp(false);
+                  setError(null);
+                  setMessage(null);
+                }}
+                style={{
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  color: '#6B7280',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  textDecoration: 'none',
+                  padding: '4px 0'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.textDecoration = 'underline';
+                  e.currentTarget.style.color = '#374151';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.textDecoration = 'none';
+                  e.currentTarget.style.color = '#6B7280';
+                }}
+              >
+                Déjà un compte ? Se connecter
+              </button>
+            </div>
+          </form>
+        ) : (
+          <form onSubmit={handleTeacherLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+                Email:
+              </label>
+              <input
+                type="email"
+                name="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #D1D5DB',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+                Password:
+              </label>
+              <input
+                type="password"
+                name="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #D1D5DB',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+            {error && (
+              <div style={{
+                padding: '12px',
+                backgroundColor: '#FEE2E2',
+                border: '1px solid #FCA5A5',
+                borderRadius: '8px',
+                color: '#DC2626',
+                fontSize: '14px',
+                textAlign: 'center'
+              }}>
+                {error}
+              </div>
+            )}
+            {message && (
+              <div style={{
+                padding: '12px',
+                backgroundColor: '#D1FAE5',
+                border: '1px solid #6EE7B7',
+                borderRadius: '8px',
+                color: '#065F46',
+                fontSize: '14px',
+                textAlign: 'center'
+              }}>
+                {message}
+              </div>
+            )}
+            <button 
+              type="submit" 
+              disabled={loading}
+              style={{
+                width: '100%',
+                padding: '12px',
+                backgroundColor: '#7C3AED',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                opacity: loading ? 0.6 : 1,
+                transition: 'opacity 0.2s ease'
+              }}
+            >
+              {loading ? 'Logging in...' : 'Login'}
+            </button>
+            <button 
+              type="button" 
+              onClick={() => setShowForgotPassword(true)}
+              style={{
+                width: '100%',
+                padding: '10px',
+                backgroundColor: 'transparent',
+                color: '#7C3AED',
+                border: 'none',
+                fontSize: '14px',
+                cursor: 'pointer',
+                textDecoration: 'underline'
+              }}
+            >
+              Forgot Password?
+            </button>
+            <div style={{ textAlign: 'center', marginTop: '8px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsTeacherSignUp(true);
+                  setError(null);
+                  setMessage(null);
+                }}
+                style={{
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  color: '#6B7280',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  textDecoration: 'none',
+                  padding: '4px 0'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.textDecoration = 'underline';
+                  e.currentTarget.style.color = '#374151';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.textDecoration = 'none';
+                  e.currentTarget.style.color = '#6B7280';
+                }}
+              >
+                Pas encore de compte ? Créer un compte enseignant
+              </button>
+            </div>
+          </form>
+        )
       ) : (
         <>
           {!isSignUp ? (
@@ -629,58 +882,38 @@ export default function LoginPage() {
                             return;
                           }
 
-                          // Check if username already exists in class
-                          const usernameExists = await checkUsernameExists(generatedUsername, classData.id);
-                          if (usernameExists) {
-                            setError('Username already taken. Please regenerate.');
-                            setLoading(false);
-                            return;
-                          }
-
-                          // Hash password
-                          const bcrypt = await import('bcryptjs');
-                          const passwordHash = await bcrypt.hash(password, 10);
-
-                          // Generate UUID for student
-                          const studentId = crypto.randomUUID();
-
-                          // Insert student directly into students table
-                          const { error: insertError } = await supabase
-                            .from('students')
-                            .insert({
-                              id: studentId,
-                              class_id: classData.id,
+                          // Call Edge Function to create student
+                          const { data: functionData, error: functionError } = await supabase.supabase.functions.invoke('create-student', {
+                            body: {
+                              join_code: joinCode.toUpperCase(),
+                              full_name: fullName.trim(),
                               username: generatedUsername,
-                              password_hash: passwordHash,
-                              name: fullName.trim()
-                            });
+                              password: password,
+                            },
+                          });
 
-                          if (insertError) {
-                            if (insertError.code === '23505') {
-                              if (insertError.message.includes('class_id') && insertError.message.includes('name')) {
-                                setError('This name is already used in this class');
-                              } else if (insertError.message.includes('username')) {
-                                setError('Username already taken. Please regenerate.');
-                              } else {
-                                setError('Registration failed. Please try again.');
-                              }
-                            } else {
-                              setError(insertError.message || 'Registration failed');
-                            }
+                          if (functionError || !functionData) {
+                            setError(functionError?.message || functionData?.error || 'Registration failed');
                             setLoading(false);
                             return;
                           }
 
-                          // Auto-login using custom student auth (not Supabase auth)
-                          const { error: loginError } = await signInStudent(generatedUsername, password);
-                          if (loginError) {
-                            setError('Account created but login failed. Please log in manually.');
+                          // Sign in student using Supabase auth
+                          const studentEmail = `${generatedUsername}@class.student`;
+                          const { error: signInError } = await supabase.supabase.auth.signInWithPassword({
+                            email: studentEmail,
+                            password,
+                          });
+
+                          if (signInError) {
+                            setError(signInError.message || 'Registration succeeded but login failed. Please log in manually.');
                             setLoading(false);
                             return;
                           }
 
-                          // Success - redirect
+                          // Success - navigate to student bracket
                           navigate('/student-bracket');
+                          setLoading(false);
                         } catch (err) {
                           setError(err instanceof Error ? err.message : 'Registration failed');
                         }
