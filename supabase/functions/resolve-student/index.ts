@@ -13,7 +13,10 @@ serve(async (req) => {
   }
 
   try {
-    // Get Supabase admin client
+    // Diagnostic log: check if authorization header exists (this endpoint does not require it)
+    const hasAuthHeader = req.headers.get('authorization') !== null;
+    
+    // Get Supabase admin client (uses service role, does not require request auth)
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -27,6 +30,9 @@ serve(async (req) => {
 
     // Parse request body
     const { username } = await req.json();
+    
+    // Temporary diagnostic log
+    console.log('resolve-student called', { hasAuthHeader, username });
 
     // Validate and trim username
     if (!username || typeof username !== 'string') {

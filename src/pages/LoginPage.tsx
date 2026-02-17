@@ -23,6 +23,7 @@ export default function LoginPage() {
   const [studentMatches, setStudentMatches] = useState<Array<{ id: string; auth_email: string; class_id: string; class_name: string }>>([]);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const studentLoginInFlight = useRef(false);
+  const didNavigateRef = useRef(false);
   const { signIn, resetPassword } = useAuth();
 
   // Username generation word banks
@@ -235,18 +236,18 @@ export default function LoginPage() {
     e.preventDefault();
     
     // Prevent double-submit
-    if (studentLoginInFlight.current) {
+    if (studentLoginInFlight.current || loading) {
       return;
     }
     
     setError(null);
     setLoading(true);
     studentLoginInFlight.current = true;
+    didNavigateRef.current = false;
 
     try {
       if (!username || !password) {
         setError('Please fill in all fields');
-        setLoading(false);
         return;
       }
 
@@ -255,22 +256,42 @@ export default function LoginPage() {
 
       // If class picker is shown and a student is selected, proceed with sign-in
       if (studentMatches.length > 1 && selectedStudentId) {
-        await performSignIn(selectedStudentId);
+        const selectedMatch = studentMatches.find(m => m.id === selectedStudentId);
+        if (selectedMatch) {
+          await signInStudentDirect(selectedMatch);
+        }
         return;
       }
 
       // Resolve student by username via Edge Function (bypasses RLS)
-      const { data: functionData, error: functionError } = await supabase.supabase.functions.invoke('resolve-student', {
-        body: { username: normalizedUsername }
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const hasAuthHeader = !!anonKey && anonKey.startsWith('eyJ');
+      console.log('resolve-student call', { willIncludeAuth: hasAuthHeader });
+      
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resolve-student`;
+      const headers: Record<string, string> = {
+        'apikey': anonKey,
+        'content-type': 'application/json',
+      };
+      
+      if (anonKey) {
+        headers['Authorization'] = `Bearer ${anonKey}`;
+      }
+      
+      const res = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ username: normalizedUsername }),
       });
 
-      if (functionError || !functionData) {
-        console.log('student matches: error');
+      if (!res.ok) {
+        const body = await res.text();
+        console.error('resolve-student failed', res.status, body);
         setError('Unknown student');
-        setLoading(false);
         return;
       }
 
+      const functionData = await res.json();
       const matches = functionData?.matches ?? [];
 
       console.log('student matches usernames', matches?.map((m: { id: string; class_id: string; auth_email: string }) => ({ id: m.id, class_id: m.class_id, auth_email: m.auth_email })));
@@ -280,14 +301,12 @@ export default function LoginPage() {
 
       if (matchCount === 0) {
         setError('Unknown student');
-        setLoading(false);
         return;
       }
 
       if (matchCount === 1) {
-        // Single match - use it directly
-        const studentRow = matches[0];
-        await performSignIn(studentRow.id, studentRow);
+        // Single match - sign in immediately
+        await signInStudentDirect(matches[0]);
         return;
       }
 
@@ -300,103 +319,63 @@ export default function LoginPage() {
       if (rememberedStudentId && typedMatches.some(m => m.id === rememberedStudentId)) {
         setSelectedStudentId(rememberedStudentId);
         console.log('class picker shown: false (remembered)');
-        await performSignIn(rememberedStudentId, typedMatches.find(m => m.id === rememberedStudentId));
+        const rememberedMatch = typedMatches.find(m => m.id === rememberedStudentId);
+        if (rememberedMatch) {
+          await signInStudentDirect(rememberedMatch);
+        }
         return;
       }
 
       console.log('class picker shown: true');
-      setLoading(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
-      setLoading(false);
     } finally {
+      setLoading(false);
       studentLoginInFlight.current = false;
+      console.log('student login finished, loading reset');
     }
   };
 
-  const performSignIn = async (studentId: string, studentRow?: { id: string; auth_email: string; class_id: string; class_name?: string }) => {
-    setLoading(true);
-    setError(null);
-
+  const signInStudentDirect = async (studentMatch: { id: string; auth_email: string; class_id: string; class_name: string }) => {
     try {
-      // Get student row if not provided
-      let targetStudent = studentRow;
-      if (!targetStudent) {
-        targetStudent = studentMatches.find(m => m.id === studentId);
-      }
-
-      if (!targetStudent?.auth_email) {
-        setError('Student data not found');
-        setLoading(false);
-        return;
-      }
-
       // Sign in with Supabase auth using auth_email
       const { data: authData, error: authError } = await supabase.supabase.auth.signInWithPassword({
-        email: targetStudent.auth_email,
+        email: studentMatch.auth_email,
         password,
       });
 
-      if (authError || !authData.user) {
-        console.log('sign-in ok: false');
+      console.log('signInWithPassword result', { ok: !!authData.session, error: authError?.message });
+
+      if (authError || !authData.session) {
         setError('Incorrect password');
-        setLoading(false);
-        return;
-      }
-
-      console.log('sign-in ok');
-
-      // Wait for session to exist before navigating (retry loop, max 10 tries, 50ms delay)
-      let sessionExists = false;
-      let sessionUser: { id: string } | null = null;
-      for (let i = 0; i < 10; i++) {
-        const { data: sessionData } = await supabase.supabase.auth.getSession();
-        if (sessionData?.session?.user) {
-          sessionExists = true;
-          sessionUser = sessionData.session.user;
-          break;
-        }
-        // Wait 50ms before next try
-        await new Promise(resolve => setTimeout(resolve, 50));
-      }
-
-      if (!sessionExists || !sessionUser) {
-        await supabase.supabase.auth.signOut();
-        console.log('session ok: false');
-        setError('Login failed, try again');
-        setLoading(false);
         return;
       }
 
       // Verify user.id matches student.id
-      if (sessionUser.id !== targetStudent.id) {
+      if (authData.session.user.id !== studentMatch.id) {
         await supabase.supabase.auth.signOut();
-        console.log('uid match ok: false');
         setError('Login mismatch, try again');
-        setLoading(false);
         return;
       }
 
-      console.log('session ok');
-      console.log('uid match ok');
+      console.log('session user id:', authData.session.user.id);
 
       // Remember selected class in localStorage
       if (studentMatches.length > 1) {
         const normalizedUsername = username.trim();
-        localStorage.setItem(`student_class_${normalizedUsername}`, targetStudent.id);
+        localStorage.setItem(`student_class_${normalizedUsername}`, studentMatch.id);
       }
 
-      // Success - redirect to student bracket
-      console.log('navigate');
-      navigate('/student-bracket', { replace: true });
-      setLoading(false);
+      // Navigate once
+      if (!didNavigateRef.current) {
+        didNavigateRef.current = true;
+        navigate('/student-bracket', { replace: true });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
-      setLoading(false);
-    } finally {
-      studentLoginInFlight.current = false;
     }
   };
+
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
