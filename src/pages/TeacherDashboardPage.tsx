@@ -54,6 +54,7 @@ export default function TeacherDashboardPage() {
   const [resetPwValue, setResetPwValue] = useState('');
   const [resetPwConfirmValue, setResetPwConfirmValue] = useState('');
   const [resettingPw, setResettingPw] = useState(false);
+  const [studentActionStatus, setStudentActionStatus] = useState<Record<string, { type: 'success' | 'error'; message: string }>>({});
 
   useEffect(() => {
     if (!user) return;
@@ -608,14 +609,15 @@ export default function TeacherDashboardPage() {
                     key={student.id}
                     style={{
                       display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
+                      flexDirection: 'column',
+                      gap: '8px',
                       padding: '12px',
                       border: '1px solid #E5E7EB',
                       borderRadius: '6px',
                       backgroundColor: '#F9FAFB'
                     }}
                   >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                       <div style={{ fontWeight: '600', color: '#111827', marginBottom: '4px' }}>
                         {student.name}
@@ -657,16 +659,16 @@ export default function TeacherDashboardPage() {
                             type="button"
                             onClick={async () => {
                               if (resetPwValue.length < 8) {
-                                setError('Password must be at least 8 characters');
+                                setStudentActionStatus(prev => ({ ...prev, [student.id]: { type: 'error', message: 'Password must be at least 8 characters' } }));
                                 return;
                               }
                               if (resetPwValue !== resetPwConfirmValue) {
-                                setError('Passwords do not match');
+                                setStudentActionStatus(prev => ({ ...prev, [student.id]: { type: 'error', message: 'Passwords do not match' } }));
                                 return;
                               }
                               const { data: { session } } = await supabase.supabase.auth.getSession();
                               if (!session?.access_token) {
-                                setError('No active session. Please log in again.');
+                                setStudentActionStatus(prev => ({ ...prev, [student.id]: { type: 'error', message: 'No active session. Please log in again.' } }));
                                 return;
                               }
                               setResettingPw(true);
@@ -681,12 +683,19 @@ export default function TeacherDashboardPage() {
                                 if (fnError) throw fnError;
                                 const result = data as { success?: boolean; error?: string } | null;
                                 if (result?.error) throw new Error(result.error);
-                                setError('Password updated. Student must sign in again.');
+                                setStudentActionStatus(prev => ({ ...prev, [student.id]: { type: 'success', message: 'Mot de passe mis à jour' } }));
                                 setResetPwStudentId(null);
                                 setResetPwValue('');
                                 setResetPwConfirmValue('');
+                                setTimeout(() => {
+                                  setStudentActionStatus(prev => {
+                                    const next = { ...prev };
+                                    delete next[student.id];
+                                    return next;
+                                  });
+                                }, 4000);
                               } catch (err) {
-                                setError(err instanceof Error ? err.message : 'Failed to reset password');
+                                setStudentActionStatus(prev => ({ ...prev, [student.id]: { type: 'error', message: err instanceof Error ? err.message : 'Failed to reset password' } }));
                               }
                               setResettingPw(false);
                             }}
@@ -710,6 +719,11 @@ export default function TeacherDashboardPage() {
                               setResetPwStudentId(null);
                               setResetPwValue('');
                               setResetPwConfirmValue('');
+                              setStudentActionStatus(prev => {
+                                const next = { ...prev };
+                                delete next[student.id];
+                                return next;
+                              });
                             }}
                             disabled={resettingPw}
                             style={{
@@ -796,6 +810,11 @@ export default function TeacherDashboardPage() {
                             setResetPwStudentId(student.id);
                             setResetPwValue('');
                             setResetPwConfirmValue('');
+                            setStudentActionStatus(prev => {
+                              const next = { ...prev };
+                              delete next[student.id];
+                              return next;
+                            });
                           }}
                           disabled={resetPwStudentId !== null}
                           style={{
@@ -828,6 +847,20 @@ export default function TeacherDashboardPage() {
                       >
                         Delete
                       </button>
+                      </div>
+                    )}
+                    </div>
+                    {studentActionStatus[student.id] && (
+                      <div
+                        style={{
+                          fontSize: '13px',
+                          padding: '6px 10px',
+                          borderRadius: '4px',
+                          backgroundColor: studentActionStatus[student.id].type === 'success' ? '#DCFCE7' : '#FEE2E2',
+                          color: studentActionStatus[student.id].type === 'success' ? '#166534' : '#991B1B',
+                        }}
+                      >
+                        {studentActionStatus[student.id].message}
                       </div>
                     )}
                   </div>

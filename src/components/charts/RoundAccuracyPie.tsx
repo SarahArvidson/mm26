@@ -1,3 +1,4 @@
+import { useMemo, useCallback } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts';
 import type { StudentBracket, StudentPick, MasterResult, BracketMatchup } from '../../utils/bracketLogic';
 import { computeRoundAccuracyAcrossBrackets } from '../../utils/analytics';
@@ -32,26 +33,16 @@ export default function RoundAccuracyPie({
   const correctPercentage = total > 0 ? Math.round((correctCount / total) * 100) : 0;
   const incorrectPercentage = total > 0 ? Math.round((incorrectCount / total) * 100) : 0;
 
-  const data = [
-    {
-      name: 'Correct',
-      value: correctCount,
-      percentage: correctPercentage,
-    },
-    {
-      name: 'Incorrect',
-      value: incorrectCount,
-      percentage: incorrectPercentage,
-    },
-  ];
-
-  if (total === 0) {
-    const roundLabel = round === 4 ? 'Championnat' : round === 1 ? '1er tour' : round === 2 ? '2e tour' : '3e tour';
-    return <div>Aucun résultat pour le {roundLabel}</div>;
-  }
+  const data = useMemo(
+    () => [
+      { name: 'Correct', value: correctCount, percentage: correctPercentage },
+      { name: 'Incorrect', value: incorrectCount, percentage: incorrectPercentage },
+    ],
+    [correctCount, incorrectCount, correctPercentage, incorrectPercentage]
+  );
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const renderCustomizedLabel = (props: any) => {
+  const renderCustomizedLabel = useCallback((props: any) => {
     const { cx, cy, midAngle, innerRadius, outerRadius, percent } = props;
     const percentage = percent !== undefined ? percent * 100 : 0;
     const RADIAN = Math.PI / 180;
@@ -71,7 +62,12 @@ export default function RoundAccuracyPie({
         {`${Math.round(percentage)}%`}
       </text>
     );
-  };
+  }, []);
+
+  if (total === 0) {
+    const roundLabel = round === 4 ? 'Championnat' : round === 1 ? '1er tour' : round === 2 ? '2e tour' : '3e tour';
+    return <div>Aucun résultat pour le {roundLabel}</div>;
+  }
 
   const isChampionnat = round === 4;
   const roundLabel = isChampionnat ? '🏆 Championnat – Le gagnant de la Manie musicale 2026' : round === 1 ? '1er tour' : round === 2 ? '2e tour' : '3e tour';
@@ -103,6 +99,9 @@ export default function RoundAccuracyPie({
             outerRadius={isChampionnat ? 109 : 80}
             fill="#8884d8"
             dataKey="value"
+            isAnimationActive={false}
+            animationBegin={0}
+            animationDuration={0}
           >
             {data.map((_, index) => (
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
