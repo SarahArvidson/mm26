@@ -50,6 +50,10 @@ export default function TeacherDashboardPage() {
   const [classStudents, setClassStudents] = useState<Array<{ id: UUID; name: string; username: string; auth_email?: string; created_at?: string }>>([]);
   const [deletingStudentId, setDeletingStudentId] = useState<UUID | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<UUID | null>(null);
+  const [resetPwStudentId, setResetPwStudentId] = useState<UUID | null>(null);
+  const [resetPwValue, setResetPwValue] = useState('');
+  const [resetPwConfirmValue, setResetPwConfirmValue] = useState('');
+  const [resettingPw, setResettingPw] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -374,7 +378,7 @@ export default function TeacherDashboardPage() {
                 border: '1px solid #86EFAC',
                 borderRadius: '6px'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}>
                   <div>
                     <div style={{
                       fontSize: '14px',
@@ -392,7 +396,8 @@ export default function TeacherDashboardPage() {
                       Share this code with students to join this class
                     </div>
                   </div>
-                  <button
+                  <div style={{ display: 'flex', justifyContent: 'center', marginTop: '4px' }}>
+                    <button
                     type="button"
                     onClick={async () => {
                       if (!selectedClassId || !window.confirm('Generate a new join code? The current code will stop working.')) return;
@@ -433,6 +438,7 @@ export default function TeacherDashboardPage() {
                   >
                     Reset class code
                   </button>
+                  </div>
                 </div>
               </div>
             ) : null;
@@ -618,7 +624,109 @@ export default function TeacherDashboardPage() {
                         {student.username}
                       </div>
                     </div>
-                    {showDeleteConfirm === student.id ? (
+                    {resetPwStudentId === student.id ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                        <input
+                          type="password"
+                          placeholder="New password"
+                          value={resetPwValue}
+                          onChange={(e) => setResetPwValue(e.target.value)}
+                          style={{
+                            padding: '6px 10px',
+                            fontSize: '14px',
+                            border: '1px solid #D1D5DB',
+                            borderRadius: '4px',
+                            minWidth: '160px',
+                          }}
+                        />
+                        <input
+                          type="password"
+                          placeholder="Confirm password"
+                          value={resetPwConfirmValue}
+                          onChange={(e) => setResetPwConfirmValue(e.target.value)}
+                          style={{
+                            padding: '6px 10px',
+                            fontSize: '14px',
+                            border: '1px solid #D1D5DB',
+                            borderRadius: '4px',
+                            minWidth: '160px',
+                          }}
+                        />
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (resetPwValue.length < 8) {
+                                setError('Password must be at least 8 characters');
+                                return;
+                              }
+                              if (resetPwValue !== resetPwConfirmValue) {
+                                setError('Passwords do not match');
+                                return;
+                              }
+                              const { data: { session } } = await supabase.supabase.auth.getSession();
+                              if (!session?.access_token) {
+                                setError('No active session. Please log in again.');
+                                return;
+                              }
+                              setResettingPw(true);
+                              try {
+                                const { data, error: fnError } = await supabase.supabase.functions.invoke('reset-student-password', {
+                                  body: { student_id: student.id, new_password: resetPwValue },
+                                  headers: {
+                                    Authorization: `Bearer ${session.access_token}`,
+                                    apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+                                  },
+                                });
+                                if (fnError) throw fnError;
+                                const result = data as { success?: boolean; error?: string } | null;
+                                if (result?.error) throw new Error(result.error);
+                                setError('Password updated. Student must sign in again.');
+                                setResetPwStudentId(null);
+                                setResetPwValue('');
+                                setResetPwConfirmValue('');
+                              } catch (err) {
+                                setError(err instanceof Error ? err.message : 'Failed to reset password');
+                              }
+                              setResettingPw(false);
+                            }}
+                            disabled={resettingPw}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: '#7C3AED',
+                              color: '#FFFFFF',
+                              border: 'none',
+                              borderRadius: '4px',
+                              fontSize: '14px',
+                              cursor: resettingPw ? 'not-allowed' : 'pointer',
+                              opacity: resettingPw ? 0.5 : 1,
+                            }}
+                          >
+                            Confirm
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setResetPwStudentId(null);
+                              setResetPwValue('');
+                              setResetPwConfirmValue('');
+                            }}
+                            disabled={resettingPw}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: '#E5E7EB',
+                              color: '#374151',
+                              border: 'none',
+                              borderRadius: '4px',
+                              fontSize: '14px',
+                              cursor: resettingPw ? 'not-allowed' : 'pointer',
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : showDeleteConfirm === student.id ? (
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         <span style={{ fontSize: '14px', color: '#DC2626' }}>Delete?</span>
                         <button
@@ -681,10 +789,32 @@ export default function TeacherDashboardPage() {
                         </button>
                       </div>
                     ) : (
-                      <button
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setResetPwStudentId(student.id);
+                            setResetPwValue('');
+                            setResetPwConfirmValue('');
+                          }}
+                          disabled={resetPwStudentId !== null}
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: '#7C3AED',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontSize: '14px',
+                            cursor: resetPwStudentId !== null ? 'not-allowed' : 'pointer',
+                            opacity: resetPwStudentId !== null ? 0.5 : 1
+                          }}
+                        >
+                          Reset password
+                        </button>
+                        <button
                         type="button"
                         onClick={() => setShowDeleteConfirm(student.id)}
-                        disabled={deletingStudentId !== null}
+                        disabled={deletingStudentId !== null || resetPwStudentId !== null}
                         style={{
                           padding: '6px 12px',
                           backgroundColor: '#EF4444',
@@ -692,12 +822,13 @@ export default function TeacherDashboardPage() {
                           border: 'none',
                           borderRadius: '4px',
                           fontSize: '14px',
-                          cursor: deletingStudentId !== null ? 'not-allowed' : 'pointer',
-                          opacity: deletingStudentId !== null ? 0.5 : 1
+                          cursor: (deletingStudentId !== null || resetPwStudentId !== null) ? 'not-allowed' : 'pointer',
+                          opacity: (deletingStudentId !== null || resetPwStudentId !== null) ? 0.5 : 1
                         }}
                       >
                         Delete
                       </button>
+                      </div>
                     )}
                   </div>
                 ))}
