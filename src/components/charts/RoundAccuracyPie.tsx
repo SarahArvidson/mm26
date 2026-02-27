@@ -8,6 +8,7 @@ interface RoundAccuracyPieProps {
   allStudentPicks: StudentPick[];
   masterResults: MasterResult[];
   allMatchups: BracketMatchup[];
+  roundAccuracyFromRpc?: Array<{ round: number; correct_count: number; total_count: number; percent: number }>;
 }
 
 const COLORS = ['#10B981', '#F97316'];
@@ -18,18 +19,14 @@ export default function RoundAccuracyPie({
   allStudentPicks,
   masterResults,
   allMatchups,
+  roundAccuracyFromRpc,
 }: RoundAccuracyPieProps) {
-  const roundResults = computeRoundAccuracyAcrossBrackets(
-    classStudentBrackets,
-    allStudentPicks,
-    masterResults,
-    allMatchups
-  );
-
-  const thisRound = roundResults.find(r => r.round === round);
-
-  const correctCount = thisRound?.correct ?? 0;
-  const total = thisRound?.total ?? 0;
+  const rpcRound = roundAccuracyFromRpc?.find(r => r.round === round);
+  const computed = rpcRound === undefined
+    ? computeRoundAccuracyAcrossBrackets(classStudentBrackets, allStudentPicks, masterResults, allMatchups).find(r => r.round === round)
+    : null;
+  const correctCount = rpcRound?.correct_count ?? computed?.correct ?? 0;
+  const total = rpcRound?.total_count ?? computed?.total ?? 0;
   const incorrectCount = total - correctCount;
 
   const correctPercentage = total > 0 ? Math.round((correctCount / total) * 100) : 0;

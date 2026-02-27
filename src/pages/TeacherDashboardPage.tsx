@@ -47,7 +47,7 @@ export default function TeacherDashboardPage() {
   const [teacherPicks, setTeacherPicks] = useState<StudentPick[]>([]);
   const [newClassName, setNewClassName] = useState('');
   const [generatedJoinCode, setGeneratedJoinCode] = useState<string | null>(null);
-  const [classStudents, setClassStudents] = useState<Array<{ id: UUID; name: string; username: string }>>([]);
+  const [classStudents, setClassStudents] = useState<Array<{ id: UUID; name: string; username: string; auth_email?: string; created_at?: string }>>([]);
   const [deletingStudentId, setDeletingStudentId] = useState<UUID | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<UUID | null>(null);
 
@@ -91,18 +91,41 @@ export default function TeacherDashboardPage() {
   const loadClassStudents = async () => {
     if (!selectedClassId) return;
 
-    try {
-      const { data: studentsData, error: studentsError } = await supabase
-        .from('students')
-        .select('id, name, username')
-        .eq('class_id', selectedClassId)
-        .order('name', { ascending: true });
-
-      if (studentsError) throw studentsError;
-      setClassStudents((studentsData || []) as Array<{ id: UUID; name: string; username: string }>);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load students');
+    const client = supabase.supabase;
+    const { data: { session }, error: sessErr } = await client.auth.getSession();
+    console.log('teacher diag: session err', sessErr);
+    console.log('teacher diag: session exists', !!session);
+    console.log('teacher diag: access token prefix', session?.access_token?.slice(0, 20));
+    const { data: userData, error: userErr } = await client.auth.getUser();
+    console.log('teacher diag: getUser err', userErr);
+    console.log('teacher diag: getUser id', userData?.user?.id);
+    if (session?.access_token) {
+      const [h, p] = session.access_token.split('.');
+      const header = JSON.parse(atob(h.replace(/-/g, '+').replace(/_/g, '/')));
+      const payload = JSON.parse(atob(p.replace(/-/g, '+').replace(/_/g, '/')));
+      console.log('teacher diag: jwt alg', header?.alg);
+      console.log('teacher diag: jwt iss', payload?.iss);
+      console.log('teacher diag: jwt aud', payload?.aud);
     }
+    if (!session?.access_token) {
+      setError('No active session token. Please log in again.');
+      return;
+    }
+    console.log('teacher invoke', 'list-class-students', 'token prefix', session.access_token.slice(0, 16));
+    const { data, error: fnError } = await supabase.supabase.functions.invoke('list-class-students', {
+      body: { class_id: selectedClassId },
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+      },
+    });
+    if (!fnError) {
+      const payload = data as { students?: Array<{ id: string; name: string; username: string }> } | null;
+      const list = payload?.students ?? [];
+      setClassStudents(list as Array<{ id: UUID; name: string; username: string; auth_email?: string; created_at?: string }>);
+      return;
+    }
+    setError(fnError.message ?? 'Failed to load students');
   };
 
   const loadData = async () => {
@@ -351,20 +374,65 @@ export default function TeacherDashboardPage() {
                 border: '1px solid #86EFAC',
                 borderRadius: '6px'
               }}>
-                <div style={{
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#166534',
-                  marginBottom: '4px'
-                }}>
-                  Join Code: {selectedClass.join_code}
-                </div>
-                <div style={{
-                  fontSize: '12px',
-                  color: '#15803D',
-                  marginTop: '4px'
-                }}>
-                  Share this code with students to join this class
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                  <div>
+                    <div style={{
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#166534',
+                      marginBottom: '4px'
+                    }}>
+                      Join Code: {selectedClass.join_code}
+                    </div>
+                    <div style={{
+                      fontSize: '12px',
+                      color: '#15803D',
+                      marginTop: '4px'
+                    }}>
+                      Share this code with students to join this class
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!selectedClassId || !window.confirm('Generate a new join code? The current code will stop working.')) return;
+                      try {
+                        const { data: { session } } = await supabase.supabase.auth.getSession();
+                        if (!session?.access_token) {
+                          setError('No active session. Please log in again.');
+                          return;
+                        }
+                        console.log('teacher invoke', 'reset-class-code', 'token prefix', session.access_token.slice(0, 16));
+                        const { data, error: fnError } = await supabase.supabase.functions.invoke('reset-class-code', {
+                          body: { class_id: selectedClassId },
+                          headers: {
+                            Authorization: `Bearer ${session.access_token}`,
+                            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+                          },
+                        });
+                        if (fnError) throw fnError;
+                        const result = data as { success?: boolean; join_code?: string } | null;
+                        if (result?.success && result?.join_code) {
+                          setClasses(prev => prev.map(c => c.id === selectedClassId ? { ...c, join_code: result.join_code! } : c));
+                          setGeneratedJoinCode(null);
+                        }
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : 'Failed to reset join code');
+                      }
+                    }}
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      color: '#166534',
+                      backgroundColor: '#DCFCE7',
+                      border: '1px solid #86EFAC',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Reset class code
+                  </button>
                 </div>
               </div>
             ) : null;
@@ -558,14 +626,23 @@ export default function TeacherDashboardPage() {
                           onClick={async () => {
                             setDeletingStudentId(student.id);
                             try {
-                              const { error: deleteError } = await supabase
-                                .from('students')
-                                .delete()
-                                .eq('id', student.id);
-
-                              if (deleteError) throw deleteError;
-
-                              // Refresh list
+                              const { data: { session } } = await supabase.supabase.auth.getSession();
+                              if (!session?.access_token) {
+                                setError('No active session. Please log in again.');
+                                setDeletingStudentId(null);
+                                return;
+                              }
+                              console.log('teacher invoke', 'delete-student', 'token prefix', session.access_token.slice(0, 16));
+                              const { data, error: fnError } = await supabase.supabase.functions.invoke('delete-student', {
+                                body: { student_id: student.id },
+                                headers: {
+                                  Authorization: `Bearer ${session.access_token}`,
+                                  apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+                                },
+                              });
+                              if (fnError) throw fnError;
+                              const result = data as { success?: boolean; error?: string } | null;
+                              if (result?.error) throw new Error(result.error);
                               await loadClassStudents();
                               setShowDeleteConfirm(null);
                             } catch (err) {

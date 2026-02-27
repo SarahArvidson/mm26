@@ -14,8 +14,6 @@ import {
 } from '../utils/bracketLogic';
 import {
   computePerRoundBreakdown,
-  createLeaderboard,
-  computePerStudentScores,
   getStudentRank,
   type StudentScore,
 } from '../utils/scoring';
@@ -36,8 +34,7 @@ export default function StudentBracketPage() {
   const [leaderboard, setLeaderboard] = useState<StudentScore[]>([]);
   const [roundBreakdown, setRoundBreakdown] = useState<Array<{ round: number; score: number }>>([]);
   const [studentRank, setStudentRank] = useState(0);
-  const [classBrackets, setClassBrackets] = useState<StudentBracket[]>([]);
-  const [allPicks, setAllPicks] = useState<StudentPick[]>([]);
+  const [classRoundAccuracy, setClassRoundAccuracy] = useState<Array<{ round: number; correct_count: number; total_count: number; percent: number }>>([]);
   const [masterResults, setMasterResults] = useState<MasterResult[]>([]);
   const [recentlySelected, setRecentlySelected] = useState<{ id: string; key: number } | null>(null);
   const [confirmingFinalize, setConfirmingFinalize] = useState(false);
@@ -154,7 +151,6 @@ export default function StudentBracketPage() {
     }
 
     const currentStudentId = studentId;
-    const currentClassId = classId;
 
     try {
       setLoading(true);
@@ -248,54 +244,26 @@ export default function StudentBracketPage() {
       const masterResultsDataTyped = (masterResultsData || []) as MasterResult[];
       setMasterResults(masterResultsDataTyped);
 
-      // Fetch all students in the class
-      const { data: classStudentsData, error: classStudentsError } = await supabase
-        .from('students')
-        .select('id, username')
-        .eq('class_id', currentClassId);
-
-      if (classStudentsError) throw classStudentsError;
-      const studentNames = new Map<UUID, string>();
-      (classStudentsData || []).forEach((s: any) => {
-        studentNames.set(s.id, s.username);
-      });
-
-      // Fetch all student brackets for the class
-      const { data: classBracketsData, error: classBracketsError } = await supabase
-        .from('student_brackets')
-        .select('*')
-        .eq('season_id', active.id)
-        .in('student_id', Array.from(studentNames.keys()));
-
-      if (classBracketsError) throw classBracketsError;
-      const classBracketsDataTyped = (classBracketsData || []) as StudentBracket[];
-      setClassBrackets(classBracketsDataTyped);
-
-      // Fetch all student picks for these brackets
-      const bracketIds = classBracketsDataTyped.map(b => b.id);
-      const { data: allPicksData, error: allPicksError } = await supabase
-        .from('student_picks')
-        .select('*')
-        .in('student_bracket_id', bracketIds);
-
-      if (allPicksError) throw allPicksError;
-      const allPicksDataTyped = (allPicksData || []) as StudentPick[];
-      setAllPicks(allPicksDataTyped);
-
-      // Compute scores and leaderboard
-      const scores = computePerStudentScores(
-        classBracketsDataTyped,
-        allPicksDataTyped,
-        masterResultsDataTyped,
-        matchupsTyped,
-        studentNames
-      );
-      const sortedLeaderboard = createLeaderboard(scores);
+      // Class leaderboard and round accuracy via RPC
+      type RpcClient = { rpc: (name: string, params: Record<string, unknown>) => Promise<{ data: unknown; error: Error | null }> };
+      const { data: leaderboardData, error: leaderboardError } = await (supabase.supabase as unknown as RpcClient).rpc('get_class_leaderboard', { p_season_id: active.id });
+      if (leaderboardError) throw leaderboardError;
+      const leaderboardRows = (leaderboardData || []) as Array<{ student_id: string; student_name: string; total_score: number; rank: number }>;
+      const sortedLeaderboard: StudentScore[] = leaderboardRows.map((row) => ({
+        student_id: row.student_id as UUID,
+        student_name: row.student_name,
+        total_score: row.total_score ?? 0,
+        round_scores: {},
+        rank: row.rank,
+      }));
       setLeaderboard(sortedLeaderboard);
 
-      // Compute current student's rank and breakdown
       const rank = getStudentRank(currentStudentId, sortedLeaderboard);
       setStudentRank(rank);
+
+      const { data: roundAccuracyData, error: roundAccuracyError } = await (supabase.supabase as unknown as RpcClient).rpc('get_class_round_accuracy', { p_season_id: active.id });
+      if (roundAccuracyError) throw roundAccuracyError;
+      setClassRoundAccuracy((roundAccuracyData || []) as Array<{ round: number; correct_count: number; total_count: number; percent: number }>);
 
       // Calculate per-round scores from picks and master results
       const breakdown = computePerRoundBreakdown(
@@ -845,7 +813,7 @@ export default function StudentBracketPage() {
             </div>
 
             {/* Class Accuracy by Round Section */}
-            {classBrackets.length > 0 && allPicks.length > 0 && masterResults.length > 0 && (
+            {classRoundAccuracy.length > 0 && masterResults.length > 0 && (
               <div style={{ marginTop: '48px' }}>
                 <h2 style={{ fontSize: '24px', marginBottom: '8px', color: '#111827', textAlign: 'center' }}>📊 Réussite de la classe</h2>
                 <p style={{
@@ -885,19 +853,21 @@ export default function StudentBracketPage() {
                           }}>
                             <RoundAccuracyPie
                               round={round}
-                              classStudentBrackets={classBrackets}
-                              allStudentPicks={allPicks}
+                              classStudentBrackets={[]}
+                              allStudentPicks={[]}
                               masterResults={masterResults}
                               allMatchups={matchups}
+                              roundAccuracyFromRpc={classRoundAccuracy}
                             />
                           </div>
                         ) : (
                           <RoundAccuracyPie
                             round={round}
-                            classStudentBrackets={classBrackets}
-                            allStudentPicks={allPicks}
+                            classStudentBrackets={[]}
+                            allStudentPicks={[]}
                             masterResults={masterResults}
                             allMatchups={matchups}
+                            roundAccuracyFromRpc={classRoundAccuracy}
                           />
                         )}
                       </div>
