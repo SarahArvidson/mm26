@@ -81,7 +81,7 @@ export default function Layout() {
           borderTop: "1px solid #E5E7EB",
         }}
       >
-        <p style={{ margin: "0 0 8px 0" }}>Copyright Sarah Arvidson 2026</p>
+        <p style={{ margin: "0 0 8px 0" }}>© Sarah Arvidson 2026</p>
         <p style={{ margin: 0 }}>
           <a
             href="https://github.com/SarahArvidson"
@@ -89,7 +89,7 @@ export default function Layout() {
             rel="noopener noreferrer"
             style={{ marginRight: "12px" }}
           >
-            My GitHub
+            GitHub
           </a>
           <a
             href="https://maniemusicale.info"
@@ -104,7 +104,7 @@ export default function Layout() {
             target="_blank"
             rel="noopener noreferrer"
           >
-            buy me a coffee!
+            faites un don !
           </a>
         </p>
       </footer>

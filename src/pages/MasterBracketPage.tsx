@@ -27,6 +27,8 @@ export default function MasterBracketPage() {
   const [masterResults, setMasterResults] = useState<MasterResult[]>([]);
   const [saving, setSaving] = useState(false);
 
+  const canEdit = isAdmin === true;
+
   useEffect(() => {
     if (!user) return;
     checkAdmin();
@@ -100,7 +102,8 @@ export default function MasterBracketPage() {
   };
 
   const handleMasterSelection = async (matchupId: UUID, songId: string) => {
-    if (!activeSeason || !isAdmin || saving) return;
+    if (!canEdit) return;
+    if (!activeSeason || saving) return;
     await handleBatchMasterUpdate([{ matchupId, songId }]);
   };
 
@@ -225,7 +228,8 @@ export default function MasterBracketPage() {
   };
 
   const handleBatchMasterUpdate = async (updates: Array<{ matchupId: UUID; songId: string }>) => {
-    if (!activeSeason || !isAdmin || saving) return;
+    if (!canEdit) return;
+    if (!activeSeason || saving) return;
 
     try {
       setSaving(true);
@@ -307,10 +311,6 @@ export default function MasterBracketPage() {
     return <div>Loading...</div>;
   }
 
-  if (!isAdmin) {
-    return <div>Access denied. Admin only.</div>;
-  }
-
   if (error && !activeSeason) {
     return <div>Error: {error}</div>;
   }
@@ -322,17 +322,19 @@ export default function MasterBracketPage() {
   const matchupsByRound = getMatchupsByRound();
 
   return (
-    <div>
-      <h1>Master Bracket - {activeSeason.name}</h1>
-      {error && <div>Error: {error}</div>}
+    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '24px' }}>
+      <h1 style={{ marginBottom: '8px', fontSize: '1.5rem' }}>Master Bracket - {activeSeason.name}</h1>
+      {error && <div style={{ color: '#DC2626', marginBottom: '12px' }}>Error: {error}</div>}
 
-      <RapidEntryPanel
-        matchups={matchups}
-        songs={songs}
-        masterResults={masterResults}
-        onBatchUpdate={handleBatchMasterUpdate}
-        getValidOptionsForMatchup={(matchup) => getValidMasterOptionsForMatchup(matchup, matchups, masterResults)}
-      />
+      {canEdit && (
+        <RapidEntryPanel
+          matchups={matchups}
+          songs={songs}
+          masterResults={masterResults}
+          onBatchUpdate={handleBatchMasterUpdate}
+          getValidOptionsForMatchup={(matchup) => getValidMasterOptionsForMatchup(matchup, matchups, masterResults)}
+        />
+      )}
 
       {Array.from(matchupsByRound.entries())
         .sort(([a], [b]) => a - b)
@@ -343,44 +345,161 @@ export default function MasterBracketPage() {
             : roundMatchups.filter(isMatchupReady);
 
           return (
-            <div key={round}>
-              <h2>Round {round}</h2>
+            <div key={round} style={{ marginBottom: '24px' }}>
+              <h2 style={{ marginBottom: '12px', fontSize: '1.15rem' }}>Round {round}</h2>
               {readyMatchups.map(matchup => {
                 const validOptions = getValidMasterOptionsForMatchup(matchup, matchups, masterResults);
                 const masterResult = masterResults.find(r => r.bracket_matchup_id === matchup.id);
                 const currentSongId = masterResult?.winner_song_id || '';
                 const currentSong = songs.find(s => s.id === currentSongId);
 
+                const song1 = matchup.song1_id ? songs.find(s => s.id === matchup.song1_id) ?? null : null;
+                const song2 = matchup.song2_id ? songs.find(s => s.id === matchup.song2_id) ?? null : null;
+
+                const song1Id = matchup.song1_id ?? null;
+                const song2Id = matchup.song2_id ?? null;
+                const rawWinnerId = masterResult?.winner_song_id ?? null;
+                const winnerId = rawWinnerId && (rawWinnerId === song1Id || rawWinnerId === song2Id) ? rawWinnerId : null;
+                const loserId = winnerId && song1Id && song2Id ? (winnerId === song1Id ? song2Id : song1Id) : null;
+
+                const renderSongLine = (song: Song | null, isWinner: boolean, isLoser: boolean) => {
+                  const label = song ? `« ${song.title} » – ${song.artist}` : '';
+                  return (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '12px',
+                        padding: isWinner ? '18px 14px' : '10px 12px',
+                        minHeight: isWinner ? '84px' : '44px',
+                        borderRadius: '14px',
+                        border: isWinner ? '2px solid #7C3AED' : '1px solid #E5E7EB',
+                        backgroundColor: isWinner ? '#F5F3FF' : isLoser ? '#E5E7EB' : '#F9FAFB',
+                        opacity: isLoser ? 0.55 : 1,
+                        filter: isLoser ? 'grayscale(35%)' : 'none',
+                        transform: isWinner ? 'scale(1.02)' : 'scale(1)',
+                        transition: 'transform 120ms ease, opacity 200ms ease, background-color 200ms ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                        {isWinner && <span aria-hidden="true">🏆</span>}
+                        <span style={{
+                          fontSize: isWinner ? '15px' : '14px',
+                          fontWeight: isWinner ? 700 : 500,
+                          color: isLoser ? '#374151' : '#111827',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {label}
+                        </span>
+                      </div>
+
+                      {isWinner && (
+                        <span style={{
+                          fontSize: '12px',
+                          fontWeight: 800,
+                          letterSpacing: '0.6px',
+                          color: '#6D28D9',
+                          backgroundColor: '#EDE9FE',
+                          padding: '4px 8px',
+                          borderRadius: '9999px',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          VAINQUEUR
+                        </span>
+                      )}
+
+                      {isLoser && (
+                        <span style={{
+                          fontSize: '12px',
+                          fontWeight: 800,
+                          letterSpacing: '0.6px',
+                          color: '#B91C1C',
+                          backgroundColor: '#FEE2E2',
+                          padding: '4px 8px',
+                          borderRadius: '9999px',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          ÉLIMINÉE
+                        </span>
+                      )}
+                    </div>
+                  );
+                };
+
                 return (
-                  <div key={matchup.id}>
-                    <label>
-                      Matchup {matchup.matchup_number}:
-                      <select
-                        value={currentSongId || ''}
-                        onChange={(e) => {
-                          const nextValue = e.target.value;
-                          console.log('[master select]', { matchupId: matchup.id, nextValue, typeofNextValue: typeof nextValue, length: nextValue?.length });
-                          handleMasterSelection(matchup.id, nextValue);
-                        }}
-                        disabled={saving || validOptions.length === 0}
-                      >
-                        <option value="">-- Select --</option>
-                        {validOptions.map(songId => (
-                          <option key={songId} value={songId}>
-                            {getSongLabel(songId)}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    {masterResult && currentSong && (
+                  <div
+                    key={matchup.id}
+                    style={{
+                      marginBottom: '14px',
+                      padding: '14px',
+                      border: '1px solid #E5E7EB',
+                      borderRadius: '16px',
+                      backgroundColor: '#FFFFFF',
+                      boxShadow: '0 6px 20px rgba(0,0,0,0.06)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10px' }}>
+                      <div style={{ fontWeight: 800, color: '#111827' }}>
+                        Matchup {matchup.matchup_number}
+                      </div>
+                      {!winnerId && (
+                        <span style={{
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          color: '#6B7280',
+                          backgroundColor: '#F3F4F6',
+                          padding: '4px 8px',
+                          borderRadius: '9999px'
+                        }}>
+                          En attente
+                        </span>
+                      )}
+                    </div>
+
+                    {canEdit ? (
                       <div>
-                        Winner: {currentSong.youtube_url ? (
-                          <a href={currentSong.youtube_url} target="_blank" rel="noopener noreferrer">
-                            {getSongLabel(currentSongId)}
-                          </a>
-                        ) : (
-                          getSongLabel(currentSongId)
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <span style={{ fontSize: '13px', color: '#6B7280' }}>Choisir le gagnant</span>
+                          <select
+                            value={currentSongId || ''}
+                            onChange={(e) => handleMasterSelection(matchup.id, e.target.value)}
+                            disabled={saving || validOptions.length === 0}
+                            style={{
+                              padding: '10px 12px',
+                              borderRadius: '10px',
+                              border: '1px solid #D1D5DB',
+                              backgroundColor: '#FFFFFF'
+                            }}
+                          >
+                            <option value="">-- Select --</option>
+                            {validOptions.map(songId => (
+                              <option key={songId} value={songId}>
+                                {getSongLabel(songId)}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+
+                        {masterResult && currentSong && (
+                          <div style={{ marginTop: '10px', fontSize: '14px' }}>
+                            <span style={{ marginRight: '6px', opacity: 0.9 }} title="Winner">🏆</span>
+                            Winner: {currentSong.youtube_url ? (
+                              <a href={currentSong.youtube_url} target="_blank" rel="noopener noreferrer">
+                                {getSongLabel(currentSongId)}
+                              </a>
+                            ) : (
+                              getSongLabel(currentSongId)
+                            )}
+                          </div>
                         )}
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {renderSongLine(song1, winnerId === song1Id, loserId === song1Id)}
+                        {renderSongLine(song2, winnerId === song2Id, loserId === song2Id)}
                       </div>
                     )}
                   </div>
