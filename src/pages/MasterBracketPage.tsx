@@ -233,62 +233,33 @@ export default function MasterBracketPage() {
 
       // Process each update
       for (const { matchupId, songId } of updates) {
-        console.log('[batch update]', { matchupId, songId, typeofSongId: typeof songId, length: songId?.length, isEmpty: songId === '' });
-
-        // Always query DB for existing row
-        const { data: existingRow, error: existingErr } = await supabase
-          .from('master_results')
-          .select('id')
-          .eq('bracket_matchup_id', matchupId)
-          .maybeSingle();
-
-        if (existingErr) throw existingErr;
-
         // Handle clearing winner (empty string)
         if (!songId) {
-          if (existingRow) {
-            const { error: delErr } = await supabase
-              .from('master_results')
-              .delete()
-              .eq('bracket_matchup_id', matchupId);
+          const { error: delErr } = await supabase
+            .from('master_results')
+            .delete()
+            .eq('season_id', activeSeason.id)
+            .eq('bracket_matchup_id', matchupId);
 
-            if (delErr) throw delErr;
-
-            // Verify delete actually worked
-            const { data: stillThere } = await supabase
-              .from('master_results')
-              .select('id')
-              .eq('bracket_matchup_id', matchupId)
-              .maybeSingle();
-
-            console.log('[after delete]', { matchupId, stillThere });
-
-            if (stillThere) {
-              throw new Error('Delete did not remove master_result for matchup ' + matchupId);
-            }
-          }
+          if (delErr) throw delErr;
           continue;
         }
 
-        // Handle setting/updating winner
-        if (existingRow) {
-          const { error: updErr } = await supabase
-            .from('master_results')
-            .update({ winner_song_id: songId, updated_at: new Date().toISOString() })
-            .eq('bracket_matchup_id', matchupId);
-
-          if (updErr) throw updErr;
-        } else {
-          const { error: insErr } = await supabase
-            .from('master_results')
-            .insert({
+        // Handle setting/updating winner: single upsert scoped by season + matchup
+        const now = new Date().toISOString();
+        const { error: upsertErr } = await supabase
+          .from('master_results')
+          .upsert(
+            {
               season_id: activeSeason.id,
               bracket_matchup_id: matchupId,
               winner_song_id: songId,
-            });
+              updated_at: now,
+            },
+            { onConflict: 'season_id,bracket_matchup_id' }
+          );
 
-          if (insErr) throw insErr;
-        }
+        if (upsertErr) throw upsertErr;
       }
 
       // Propagate advancement to rounds 2-4

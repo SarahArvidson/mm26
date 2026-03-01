@@ -4,12 +4,15 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import {
   resolveActiveSeason,
+  getValidMasterOptionsForMatchup,
   type Season,
   type BracketMatchup,
   type StudentBracket,
   type StudentPick,
   type MasterResult,
   type Song,
+  type ClassMatchupVoting,
+  type StudentVote,
   type UUID,
 } from '../utils/bracketLogic';
 import {
@@ -55,6 +58,8 @@ export default function TeacherDashboardPage() {
   const [resetPwConfirmValue, setResetPwConfirmValue] = useState('');
   const [resettingPw, setResettingPw] = useState(false);
   const [studentActionStatus, setStudentActionStatus] = useState<Record<string, { type: 'success' | 'error'; message: string }>>({});
+  const [votingGates, setVotingGates] = useState<ClassMatchupVoting[]>([]);
+  const [classVotes, setClassVotes] = useState<StudentVote[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -291,9 +296,69 @@ export default function TeacherDashboardPage() {
       );
       const sortedLeaderboard = createLeaderboard(scores);
       setLeaderboard(sortedLeaderboard);
+
+      const { data: gatesData, error: gatesError } = await supabase
+        .from('class_matchup_voting')
+        .select('*')
+        .eq('class_id', selectedClassId)
+        .eq('season_id', activeSeason.id);
+      if (!gatesError) setVotingGates((gatesData || []) as ClassMatchupVoting[]);
+
+      const { data: votesData, error: votesError } = await supabase
+        .from('student_votes')
+        .select('*')
+        .eq('class_id', selectedClassId)
+        .eq('season_id', activeSeason.id);
+      if (!votesError) setClassVotes((votesData || []) as StudentVote[]);
     } catch (err: any) {
       setError(err.message || 'Failed to load leaderboard');
     }
+  };
+
+  const openVoting = async (bracketMatchupId: UUID) => {
+    if (!selectedClassId || !activeSeason || !user) return;
+    const now = new Date().toISOString();
+    const { error } = await supabase.from('class_matchup_voting').upsert(
+      {
+        season_id: activeSeason.id,
+        class_id: selectedClassId,
+        bracket_matchup_id: bracketMatchupId,
+        is_open: true,
+        opened_by: user.id,
+        opened_at: now,
+        closed_at: null,
+        updated_at: now,
+      },
+      { onConflict: 'season_id,class_id,bracket_matchup_id' }
+    );
+    if (!error) await loadClassLeaderboard();
+    else setError(error.message);
+  };
+
+  const closeVoting = async (bracketMatchupId: UUID) => {
+    if (!selectedClassId || !activeSeason) return;
+    const now = new Date().toISOString();
+    const { error } = await supabase
+      .from('class_matchup_voting')
+      .update({ is_open: false, closed_at: now, updated_at: now })
+      .eq('class_id', selectedClassId)
+      .eq('season_id', activeSeason.id)
+      .eq('bracket_matchup_id', bracketMatchupId);
+    if (!error) await loadClassLeaderboard();
+    else setError(error.message);
+  };
+
+  const deleteStudentVote = async (studentId: UUID, bracketMatchupId: UUID) => {
+    if (!selectedClassId || !activeSeason) return;
+    const { error } = await supabase
+      .from('student_votes')
+      .delete()
+      .eq('student_id', studentId)
+      .eq('bracket_matchup_id', bracketMatchupId)
+      .eq('class_id', selectedClassId)
+      .eq('season_id', activeSeason.id);
+    if (!error) await loadClassLeaderboard();
+    else setError(error.message);
   };
 
   if (loading) {
@@ -873,6 +938,153 @@ export default function TeacherDashboardPage() {
 
       {selectedClassId && activeSeason && (
         <>
+          {/* Live Voting */}
+          {matchups.length > 0 && (
+            <div style={{
+              marginBottom: '32px',
+              padding: '20px',
+              border: '1px solid #E5E7EB',
+              borderRadius: '8px',
+              backgroundColor: '#FFFFFF'
+            }}>
+              <h2 style={{ color: '#7C3AED', marginTop: 0, marginBottom: '16px', fontSize: '20px', fontWeight: 600 }}>
+                Live voting
+              </h2>
+              <p style={{ fontSize: '14px', color: '#6B7280', marginBottom: '16px' }}>
+                Open or close a matchup for in-class live votes. Students vote in the lobby.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {matchups.sort((a, b) => a.matchup_number - b.matchup_number).map((matchup) => {
+                  const gate = votingGates.find(g => g.bracket_matchup_id === matchup.id);
+                  const isOpen = gate?.is_open ?? false;
+                  const votesForMatchup = classVotes.filter(v => v.bracket_matchup_id === matchup.id);
+                  const totalVotes = votesForMatchup.length;
+                  const songCounts = votesForMatchup.reduce<Record<string, number>>((acc, v) => {
+                    acc[v.picked_song_id] = (acc[v.picked_song_id] || 0) + 1;
+                    return acc;
+                  }, {});
+                  const participation = classStudents.length > 0 ? `${totalVotes}/${classStudents.length}` : '0/0';
+                  const optionSongIds = isOpen
+                    ? (matchup.round === 1 && (matchup.song1_id || matchup.song2_id)
+                        ? [matchup.song1_id, matchup.song2_id].filter(Boolean) as UUID[]
+                        : getValidMasterOptionsForMatchup(matchup, matchups, masterResults))
+                    : [];
+                  const songLabels = optionSongIds.map(id => {
+                    const s = songs.find(x => x.id === id);
+                    return s ? `« ${s.title} » – ${s.artist}` : '';
+                  }).filter(Boolean);
+                  return (
+                    <div
+                      key={matchup.id}
+                      style={{
+                        padding: '12px 16px',
+                        border: '1px solid #E5E7EB',
+                        borderRadius: '8px',
+                        backgroundColor: '#F9FAFB',
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        alignItems: 'center',
+                        gap: '12px',
+                        justifyContent: 'space-between'
+                      }}
+                    >
+                      <div style={{ flex: '1 1 200px' }}>
+                        <div style={{ fontWeight: 600, color: '#111827', marginBottom: '4px' }}>Matchup {matchup.matchup_number}</div>
+                        <span style={{
+                          fontSize: '12px',
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          backgroundColor: isOpen ? '#DCFCE7' : '#FEE2E2',
+                          color: isOpen ? '#166534' : '#991B1B',
+                          fontWeight: 500
+                        }}>
+                          {isOpen ? 'Open' : 'Closed'}
+                        </span>
+                        {isOpen && songLabels.length > 0 && (
+                          <div style={{ marginTop: '4px', fontSize: '12px', color: '#6B7280' }}>
+                            {songLabels.join(' vs ')}
+                          </div>
+                        )}
+                        {isOpen && totalVotes > 0 && (
+                          <div style={{ marginTop: '8px', fontSize: '13px', color: '#6B7280' }}>
+                            Participation: {participation}
+                            {Object.entries(songCounts).map(([songId, count]) => {
+                              const s = songs.find(x => x.id === songId);
+                              const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+                              return (
+                                <span key={songId} style={{ marginRight: '12px' }}>
+                                  {s ? `${s.title}: ${count} (${pct}%)` : songId}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
+                        {isOpen && votesForMatchup.length > 0 && (
+                          <div style={{ marginTop: '6px', fontSize: '12px', color: '#6B7280' }}>
+                            {votesForMatchup.map((v) => {
+                              const stu = classStudents.find(c => c.id === v.student_id);
+                              const song = songs.find(s => s.id === v.picked_song_id);
+                              return (
+                                <span key={v.id} style={{ marginRight: '8px', display: 'inline-block' }}>
+                                  {stu?.name ?? v.student_id}: {song?.title ?? v.picked_song_id}
+                                  <button
+                                    type="button"
+                                    onClick={() => deleteStudentVote(v.student_id, matchup.id)}
+                                    style={{ marginLeft: '4px', fontSize: '11px', padding: '2px 6px', cursor: 'pointer' }}
+                                  >
+                                    Delete vote
+                                  </button>
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
+                        {!isOpen && totalVotes === 0 && (
+                          <div style={{ marginTop: '8px', fontSize: '13px', color: '#6B7280' }}>0 votes</div>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        {isOpen ? (
+                          <button
+                            type="button"
+                            onClick={() => closeVoting(matchup.id)}
+                            style={{
+                              padding: '6px 12px',
+                              fontSize: '14px',
+                              backgroundColor: '#DC2626',
+                              color: '#FFF',
+                              border: 'none',
+                              borderRadius: '6px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Close
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => openVoting(matchup.id)}
+                            style={{
+                              padding: '6px 12px',
+                              fontSize: '14px',
+                              backgroundColor: '#16A34A',
+                              color: '#FFF',
+                              border: 'none',
+                              borderRadius: '6px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Open
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Section 1: Class Leaderboard */}
           <div style={{
             marginBottom: '32px',
@@ -1297,7 +1509,7 @@ export default function TeacherDashboardPage() {
               }}>
                 Embed Generator (Optional)
               </h3>
-              <EmbedGeneratorPanel seasonId={activeSeason.id} />
+              <EmbedGeneratorPanel seasonId={activeSeason.id} />         
             </div>
           )}
         </>

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import {
@@ -10,8 +10,11 @@ import {
   type StudentPick,
   type StudentBracket,
   type MasterResult,
+  type ClassMatchupVoting,
+  type StudentVote,
   type UUID,
 } from '../utils/bracketLogic';
+import ArcadeBurst from '../components/ArcadeBurst';
 import {
   computePerRoundBreakdown,
   getStudentRank,
@@ -39,6 +42,13 @@ export default function StudentBracketPage() {
   const [recentlySelected, setRecentlySelected] = useState<{ id: string; key: number } | null>(null);
   const [confirmingFinalize, setConfirmingFinalize] = useState(false);
   const [viewMode, setViewMode] = useState<'lobby' | 'bracket'>('lobby');
+  const [currentClassId, setCurrentClassId] = useState<string | null>(null);
+  const [openVotingGates, setOpenVotingGates] = useState<ClassMatchupVoting[]>([]);
+  const [myVotes, setMyVotes] = useState<StudentVote[]>([]);
+  const [votingSuccessMatchupId, setVotingSuccessMatchupId] = useState<string | null>(null);
+  const [votingBurstMatchupId, setVotingBurstMatchupId] = useState<string | null>(null);
+  const [votingBurstSongId, setVotingBurstSongId] = useState<string | null>(null);
+  const [votingInProgress, setVotingInProgress] = useState(false);
   const [messageIndex, setMessageIndex] = useState(0);
   const [perfPop, setPerfPop] = useState(false);
   const [perfBurstKey, setPerfBurstKey] = useState(0);
@@ -150,6 +160,7 @@ export default function StudentBracketPage() {
       classId = studentData.class_id;
     }
 
+    if (classId) setCurrentClassId(classId);
     const currentStudentId = studentId;
 
     try {
@@ -272,6 +283,23 @@ export default function StudentBracketPage() {
         matchupsTyped
       );
       setRoundBreakdown(breakdown);
+
+      if (classId && active) {
+        const { data: gatesData } = await supabase
+          .from('class_matchup_voting')
+          .select('*')
+          .eq('class_id', classId)
+          .eq('season_id', active.id)
+          .eq('is_open', true);
+        setOpenVotingGates((gatesData || []) as ClassMatchupVoting[]);
+
+        const { data: votesData } = await supabase
+          .from('student_votes')
+          .select('*')
+          .eq('student_id', currentStudentId)
+          .eq('season_id', active.id);
+        setMyVotes((votesData || []) as StudentVote[]);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load data');
     } finally {
@@ -365,6 +393,24 @@ export default function StudentBracketPage() {
     });
     return grouped;
   };
+
+  const masterPicks = useMemo(() => masterResults.map(mr => ({
+    bracket_matchup_id: mr.bracket_matchup_id,
+    picked_song_id: mr.winner_song_id,
+  })), [masterResults]);
+
+  const openMatchupsWithOptions = useMemo(() => {
+    return openVotingGates
+      .map(g => {
+        const matchup = matchups.find(m => m.id === g.bracket_matchup_id);
+        if (!matchup) return null;
+        const options = getValidOptionsForMatchup(matchup, matchups, masterPicks as StudentPick[]);
+        return { gate: g, matchup, options };
+      })
+      .filter((x): x is { gate: ClassMatchupVoting; matchup: BracketMatchup; options: UUID[] } =>
+        x !== null && x.options.length >= 2
+      );
+  }, [openVotingGates, matchups, masterPicks]);
 
   if (loading) {
     return <div>Loading...</div>;
@@ -762,6 +808,117 @@ export default function StudentBracketPage() {
             </div>
           </div>
 
+          {/* Live voting */}
+          <div style={{
+            width: '100%',
+            marginTop: '24px',
+            marginBottom: '24px',
+            padding: '24px',
+            borderRadius: '20px',
+            boxShadow: '0 6px 20px rgba(0,0,0,0.06)',
+            border: '1px solid #E5E7EB',
+            backgroundColor: '#FFFFFF'
+          }}>
+            <h2 style={{ marginTop: 0, marginBottom: '8px', color: '#7C3AED', fontSize: '20px', textAlign: 'center' }}>
+              🗳️ Vote en direct
+            </h2>
+            <p style={{ fontSize: '14px', color: '#6B7280', marginBottom: '16px', textAlign: 'center' }}>
+              Choisis ton favori pour chaque match ouvert par ton professeur.
+            </p>
+            {openMatchupsWithOptions.length === 0 ? (
+              <p style={{ fontSize: '14px', color: '#9CA3AF', margin: 0, textAlign: 'center' }}>
+                Aucun vote en cours pour le moment.
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {openMatchupsWithOptions.map(({ matchup, options }) => {
+                  const alreadyVoted = myVotes.some(v => v.bracket_matchup_id === matchup.id);
+                  const successShow = votingSuccessMatchupId === matchup.id;
+                  return (
+                    <div
+                      key={matchup.id}
+                      style={{
+                        padding: '16px',
+                        border: '1px solid #E5E7EB',
+                        borderRadius: '12px',
+                        backgroundColor: alreadyVoted ? '#F9FAFB' : '#FFFFFF'
+                      }}
+                    >
+                      <div style={{ fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '12px' }}>
+                        Match {matchup.matchup_number} (Tour {matchup.round})
+                      </div>
+                      {alreadyVoted ? (
+                        <div style={{ fontSize: '14px', color: '#6B7280' }}>
+                          Tu as déjà voté pour ce match.
+                          {successShow && (
+                            <span style={{ marginLeft: '8px', color: '#16A34A', fontWeight: 500 }}>✓ Enregistré</span>
+                          )}
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'stretch' }}>
+                          {options.map((songId) => {
+                            const isSelected = votingBurstMatchupId === matchup.id && votingBurstSongId === songId;
+                            return (
+                              <button
+                                key={songId}
+                                type="button"
+                                disabled={votingInProgress}
+                                onClick={async () => {
+                                  if (!currentClassId || !currentStudentId || !activeSeason) return;
+                                  setVotingInProgress(true);
+                                  setError(null);
+                                  const { data: inserted, error: insertErr } = await supabase
+                                    .from('student_votes')
+                                    .insert({
+                                      season_id: activeSeason.id,
+                                      class_id: currentClassId,
+                                      bracket_matchup_id: matchup.id,
+                                      student_id: currentStudentId,
+                                      picked_song_id: songId
+                                    })
+                                    .select()
+                                    .single();
+                                  setVotingInProgress(false);
+                                  if (insertErr) {
+                                    setError(insertErr.message);
+                                    return;
+                                  }
+                                  setMyVotes(prev => [...prev, inserted as StudentVote]);
+                                  setVotingSuccessMatchupId(matchup.id);
+                                  setVotingBurstMatchupId(matchup.id);
+                                  setVotingBurstSongId(songId);
+                                  setTimeout(() => { setVotingBurstMatchupId(null); setVotingBurstSongId(null); }, 800);
+                                  setTimeout(() => setVotingSuccessMatchupId(null), 3000);
+                                }}
+                                style={{
+                                  position: 'relative',
+                                  minWidth: '140px',
+                                  padding: '12px 16px',
+                                  border: '2px solid #D1D5DB',
+                                  borderRadius: '8px',
+                                  backgroundColor: '#FFFFFF',
+                                  cursor: votingInProgress ? 'not-allowed' : 'pointer',
+                                  fontSize: '14px',
+                                  textAlign: 'left',
+                                  opacity: votingInProgress ? 0.7 : 1
+                                }}
+                              >
+                                {isSelected && (
+                                  <ArcadeBurst />
+                                )}
+                                {getSongLabel(songId)}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           {/* Class Leaderboard + Accuracy Section */}
           <div style={{
             background: '#FFFFFF',
@@ -1051,58 +1208,7 @@ export default function StudentBracketPage() {
                             }
                           }}
                         >
-                          {isRecentlySelected && (
-                            <div className="arcade-burst">
-                              {/* Edge sparkles – doubled, smaller */}
-                              {[
-                                { top: "0%", left: "10%", dx: "0px", dy: "-35px" },
-                                { top: "0%", left: "30%", dx: "0px", dy: "-35px" },
-                                { top: "0%", left: "70%", dx: "0px", dy: "-35px" },
-                                { top: "0%", left: "90%", dx: "0px", dy: "-35px" },
-
-                                { top: "100%", left: "20%", dx: "0px", dy: "35px" },
-                                { top: "100%", left: "80%", dx: "0px", dy: "35px" },
-
-                                { top: "50%", left: "0%", dx: "-35px", dy: "0px" },
-                                { top: "50%", left: "100%", dx: "35px", dy: "0px" }
-                              ].map((pos, index) => (
-                                <span
-                                  key={index}
-                                  className="sparkle-shard"
-                                  style={
-                                    {
-                                      top: pos.top,
-                                      left: pos.left,
-                                      "--dx": pos.dx,
-                                      "--dy": pos.dy
-                                    } as React.CSSProperties
-                                  }
-                                >
-                                  ✨
-                                </span>
-                              ))}
-
-                              {/* 4 floating music notes – FFS palette with stagger */}
-                              {[
-                                { left: "25%", color: "#2563EB", symbol: "♪", delay: "0ms" },
-                                { left: "40%", color: "#10B981", symbol: "♫", delay: "60ms" },
-                                { left: "60%", color: "#7C3AED", symbol: "♪", delay: "120ms" },
-                                { left: "75%", color: "#EF4444", symbol: "♫", delay: "180ms" }
-                              ].map((note, index) => (
-                                <span
-                                  key={index}
-                                  className="music-note"
-                                  style={{
-                                    left: note.left,
-                                    color: note.color,
-                                    animationDelay: note.delay
-                                  }}
-                                >
-                                  {note.symbol}
-                                </span>
-                              ))}
-                            </div>
-                          )}
+                          {isRecentlySelected && <ArcadeBurst />}
                           {getSongLabel(songId)}
                           {isEliminated && (
                             <span

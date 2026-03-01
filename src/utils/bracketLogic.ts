@@ -54,6 +54,30 @@ export interface StudentBracket {
   created_at: string;
 }
 
+export interface ClassMatchupVoting {
+  id: UUID;
+  season_id: UUID;
+  class_id: UUID;
+  bracket_matchup_id: UUID;
+  is_open: boolean;
+  opened_by: UUID | null;
+  opened_at: string | null;
+  closed_at: string | null;
+  closes_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StudentVote {
+  id: UUID;
+  season_id: UUID;
+  class_id: UUID;
+  bracket_matchup_id: UUID;
+  student_id: UUID;
+  picked_song_id: UUID;
+  created_at: string;
+}
+
 /**
  * Resolves the active season from a list of seasons.
  * Returns the season where is_active = true, or null if none exists.
