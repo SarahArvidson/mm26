@@ -60,6 +60,20 @@ export default function TeacherDashboardPage() {
   const [studentActionStatus, setStudentActionStatus] = useState<Record<string, { type: 'success' | 'error'; message: string }>>({});
   const [votingGates, setVotingGates] = useState<ClassMatchupVoting[]>([]);
   const [classVotes, setClassVotes] = useState<StudentVote[]>([]);
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [feedbackList, setFeedbackList] = useState<Array<{ id: string; message: string; created_at: string }>>([]);
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+
+  const loadFeedback = async () => {
+    if (!user?.id) return;
+    const { data } = await supabase.supabase
+      .from('teacher_feedback')
+      .select('id, message, created_at')
+      .eq('teacher_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(10);
+    setFeedbackList((data as Array<{ id: string; message: string; created_at: string }>) || []);
+  };
 
   useEffect(() => {
     if (!user) {
@@ -88,6 +102,7 @@ export default function TeacherDashboardPage() {
       }
 
       loadData();
+      loadFeedback();
     };
 
     checkTeacherProfile();
@@ -1511,11 +1526,88 @@ export default function TeacherDashboardPage() {
               }}>
                 Embed Generator (Optional)
               </h3>
-              <EmbedGeneratorPanel seasonId={activeSeason.id} />         
+              <EmbedGeneratorPanel seasonId={activeSeason.id} />
             </div>
           )}
         </>
       )}
+
+      {/* Commentaires pour Sarah */}
+      <div style={{
+        marginTop: '24px',
+        padding: '20px',
+        border: '1px solid #E5E7EB',
+        borderRadius: '8px',
+        backgroundColor: '#FFFFFF'
+      }}>
+        <h3 style={{ color: '#6B7280', marginTop: 0, marginBottom: '12px', fontSize: '16px', fontWeight: 500 }}>
+          Commentaires pour Sarah
+        </h3>
+        <textarea
+          value={feedbackMessage}
+          onChange={(e) => setFeedbackMessage(e.target.value)}
+          placeholder="Votre message..."
+          rows={3}
+          style={{
+            width: '100%',
+            padding: '10px 12px',
+            border: '1px solid #D1D5DB',
+            borderRadius: '8px',
+            fontSize: '14px',
+            boxSizing: 'border-box',
+            marginBottom: '8px',
+            resize: 'vertical'
+          }}
+        />
+        <button
+          type="button"
+          disabled={!feedbackMessage.trim() || feedbackSubmitting}
+          onClick={async () => {
+            if (!user?.id || !feedbackMessage.trim() || feedbackSubmitting) return;
+            setFeedbackSubmitting(true);
+            setError(null);
+            const client = supabase.supabase as unknown as { from: (table: string) => { insert: (values: object) => Promise<{ error: { message: string } | null }> } };
+            const { error: insertErr } = await client.from('teacher_feedback').insert({
+              teacher_id: user.id,
+              season_id: activeSeason?.id ?? null,
+              message: feedbackMessage.trim()
+            });
+            setFeedbackSubmitting(false);
+            if (insertErr) {
+              setError(insertErr.message);
+              return;
+            }
+            setFeedbackMessage('');
+            loadFeedback();
+          }}
+          style={{
+            padding: '8px 16px',
+            fontSize: '14px',
+            fontWeight: 600,
+            backgroundColor: '#7C3AED',
+            color: '#FFF',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: feedbackMessage.trim() && !feedbackSubmitting ? 'pointer' : 'not-allowed',
+            opacity: feedbackMessage.trim() && !feedbackSubmitting ? 1 : 0.6
+          }}
+        >
+          {feedbackSubmitting ? 'Envoi...' : 'Envoyer'}
+        </button>
+        {feedbackList.length > 0 && (
+          <div style={{ marginTop: '16px', fontSize: '14px', color: '#374151' }}>
+            <div style={{ fontWeight: 600, marginBottom: '8px' }}>Vos derniers messages</div>
+            {feedbackList.map((f) => (
+              <div key={f.id} style={{ marginBottom: '8px', padding: '8px', backgroundColor: '#F9FAFB', borderRadius: '6px' }}>
+                <div style={{ marginBottom: '4px' }}>{f.message}</div>
+                <div style={{ fontSize: '12px', color: '#6B7280' }}>
+                  {new Date(f.created_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

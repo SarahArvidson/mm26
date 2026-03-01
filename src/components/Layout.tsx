@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Link, Outlet, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
+import { useState, useEffect } from "react";
+import { Link, Outlet, useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import { supabase } from "../lib/supabase";
 
 export default function Layout() {
   const navigate = useNavigate();
@@ -15,9 +15,9 @@ export default function Layout() {
       return;
     }
     supabase.supabase
-      .from('teachers')
-      .select('id')
-      .eq('id', user.id)
+      .from("teachers")
+      .select("id")
+      .eq("id", user.id)
       .maybeSingle()
       .then(({ data }) => setIsTeacher(!!data));
   }, [user?.id]);
@@ -25,29 +25,43 @@ export default function Layout() {
   const handleLogout = async () => {
     await signOut();
     setMenuOpen(false);
-    navigate('/login');
+    navigate("/login");
   };
 
   return (
     <div>
       <header>
-        <button onClick={() => setMenuOpen(!menuOpen)}>
-          ☰
-        </button>
+        <button onClick={() => setMenuOpen(!menuOpen)}>☰</button>
         {menuOpen && (
           <nav>
-            <Link to="/accueil" onClick={() => setMenuOpen(false)}>Accueil</Link>
-            <Link to="/login" onClick={() => setMenuOpen(false)}>Login</Link>
+            <Link to="/accueil" onClick={() => setMenuOpen(false)}>
+              Accueil
+            </Link>
+            <Link to="/login" onClick={() => setMenuOpen(false)}>
+              Login
+            </Link>
             {studentSession && (
-              <Link to="/student-bracket" onClick={() => setMenuOpen(false)}>Student Bracket</Link>
+              <Link to="/student-bracket" onClick={() => setMenuOpen(false)}>
+                Student Bracket
+              </Link>
             )}
             {isTeacher === true && (
-              <Link to="/teacher-dashboard" onClick={() => setMenuOpen(false)}>Teacher Dashboard</Link>
+              <Link to="/teacher-dashboard" onClick={() => setMenuOpen(false)}>
+                Teacher Dashboard
+              </Link>
             )}
-            <Link to="/master-bracket" onClick={() => setMenuOpen(false)}>Master Bracket</Link>
-            <Link to="/video-library" onClick={() => setMenuOpen(false)}>Video Library</Link>
-            <Link to="/instructions" onClick={() => setMenuOpen(false)}>Instructions</Link>
-            <Link to="/settings" onClick={() => setMenuOpen(false)}>Settings</Link>
+            <Link to="/master-bracket" onClick={() => setMenuOpen(false)}>
+              Master Bracket
+            </Link>
+            <Link to="/video-library" onClick={() => setMenuOpen(false)}>
+              Video Library
+            </Link>
+            <Link to="/instructions" onClick={() => setMenuOpen(false)}>
+              Instructions
+            </Link>
+            <Link to="/settings" onClick={() => setMenuOpen(false)}>
+              Settings
+            </Link>
             {(user || studentSession) && (
               <button onClick={handleLogout}>Logout</button>
             )}
@@ -57,12 +71,41 @@ export default function Layout() {
       <main>
         <Outlet />
       </main>
-      <footer style={{ marginTop: '2rem', padding: '1rem', textAlign: 'center', fontSize: '14px', color: '#6B7280', borderTop: '1px solid #E5E7EB' }}>
-        <p style={{ margin: '0 0 8px 0' }}>Copyright Sarah Arvidson 2026</p>
+      <footer
+        style={{
+          marginTop: "2rem",
+          padding: "1rem",
+          textAlign: "center",
+          fontSize: "14px",
+          color: "#6B7280",
+          borderTop: "1px solid #E5E7EB",
+        }}
+      >
+        <p style={{ margin: "0 0 8px 0" }}>Copyright Sarah Arvidson 2026</p>
         <p style={{ margin: 0 }}>
-          <a href="https://github.com" target="_blank" rel="noopener noreferrer" style={{ marginRight: '12px' }}>GitHub</a>
-          <a href="https://maniemusicale.info" target="_blank" rel="noopener noreferrer" style={{ marginRight: '12px' }}>maniemusicale.info</a>
-          <a href="https://venmo.com" target="_blank" rel="noopener noreferrer">buy me a coffee!</a>
+          <a
+            href="https://github.com/SarahArvidson"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ marginRight: "12px" }}
+          >
+            My GitHub
+          </a>
+          <a
+            href="https://maniemusicale.info"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ marginRight: "12px" }}
+          >
+            maniemusicale.info
+          </a>
+          <a
+            href="https://www.venmo.com/u/Sarah-Arvidson"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            buy me a coffee!
+          </a>
         </p>
       </footer>
     </div>
