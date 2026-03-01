@@ -36,8 +36,11 @@ export default function Layout() {
         </button>
         {menuOpen && (
           <nav>
+            <Link to="/accueil" onClick={() => setMenuOpen(false)}>Accueil</Link>
             <Link to="/login" onClick={() => setMenuOpen(false)}>Login</Link>
-            <Link to="/student-bracket" onClick={() => setMenuOpen(false)}>Student Bracket</Link>
+            {studentSession && (
+              <Link to="/student-bracket" onClick={() => setMenuOpen(false)}>Student Bracket</Link>
+            )}
             {isTeacher === true && (
               <Link to="/teacher-dashboard" onClick={() => setMenuOpen(false)}>Teacher Dashboard</Link>
             )}
@@ -54,6 +57,14 @@ export default function Layout() {
       <main>
         <Outlet />
       </main>
+      <footer style={{ marginTop: '2rem', padding: '1rem', textAlign: 'center', fontSize: '14px', color: '#6B7280', borderTop: '1px solid #E5E7EB' }}>
+        <p style={{ margin: '0 0 8px 0' }}>Copyright Sarah Arvidson 2026</p>
+        <p style={{ margin: 0 }}>
+          <a href="https://github.com" target="_blank" rel="noopener noreferrer" style={{ marginRight: '12px' }}>GitHub</a>
+          <a href="https://maniemusicale.info" target="_blank" rel="noopener noreferrer" style={{ marginRight: '12px' }}>maniemusicale.info</a>
+          <a href="https://venmo.com" target="_blank" rel="noopener noreferrer">buy me a coffee!</a>
+        </p>
+      </footer>
     </div>
   );
 }

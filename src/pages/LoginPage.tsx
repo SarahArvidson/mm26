@@ -510,23 +510,7 @@ export default function LoginPage() {
       {/* Teacher/Student Toggle */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', justifyContent: 'center' }}>
         <button 
-          onClick={() => setIsTeacher(true)}
-          style={{
-            padding: '10px 20px',
-            backgroundColor: isTeacher ? '#7C3AED' : '#E5E7EB',
-            color: isTeacher ? '#FFFFFF' : '#374151',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontWeight: '600',
-            fontSize: '14px',
-            transition: 'all 0.2s ease'
-          }}
-        >
-          Teacher
-        </button>
-        <button 
-          onClick={() => setIsTeacher(false)}
+          onClick={() => { setError(null); setIsTeacher(false); }}
           style={{
             padding: '10px 20px',
             backgroundColor: !isTeacher ? '#7C3AED' : '#E5E7EB',
@@ -540,6 +524,22 @@ export default function LoginPage() {
           }}
         >
           Student
+        </button>
+        <button 
+          onClick={() => { setError(null); setIsTeacher(true); }}
+          style={{
+            padding: '10px 20px',
+            backgroundColor: isTeacher ? '#7C3AED' : '#E5E7EB',
+            color: isTeacher ? '#FFFFFF' : '#374151',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            fontSize: '14px',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          Teacher
         </button>
       </div>
       {isTeacher ? (
@@ -1410,20 +1410,6 @@ export default function LoginPage() {
             </>
           )}
         </>
-      )}
-      {error && isTeacher && (
-        <div style={{
-          marginTop: '16px',
-          padding: '12px',
-          backgroundColor: '#FEE2E2',
-          border: '1px solid #FCA5A5',
-          borderRadius: '8px',
-          color: '#DC2626',
-          fontSize: '14px',
-          textAlign: 'center'
-        }}>
-          {error}
-        </div>
       )}
     </div>
   );

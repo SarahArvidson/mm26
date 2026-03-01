@@ -11,6 +11,7 @@ import SettingsPage from './pages/SettingsPage';
 import EmbedBracketPage from './pages/EmbedBracketPage';
 import PrintBracketPage from './pages/PrintBracketPage';
 import CompleteProfilePage from './pages/CompleteProfilePage';
+import LandingPage from './pages/LandingPage';
 import './App.css';
 
 function App() {
@@ -19,7 +20,8 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Layout />}>
-            <Route index element={<LoginPage />} />
+            <Route index element={<LandingPage />} />
+            <Route path="accueil" element={<LandingPage />} />
             <Route path="login" element={<LoginPage />} />
             <Route path="student-bracket" element={<StudentBracketPage />} />
             <Route path="teacher-dashboard" element={<TeacherDashboardPage />} />
