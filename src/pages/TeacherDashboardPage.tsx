@@ -62,9 +62,12 @@ export default function TeacherDashboardPage() {
   const [classVotes, setClassVotes] = useState<StudentVote[]>([]);
 
   useEffect(() => {
-    if (!user) return;
-    
-    // Check if teacher profile exists
+    if (!user) {
+      setLoading(false);
+      navigate('/login', { replace: true });
+      return;
+    }
+
     const checkTeacherProfile = async () => {
       const { data: teacherData, error: teacherError } = await supabase
         .from('teachers')
@@ -79,17 +82,16 @@ export default function TeacherDashboardPage() {
       }
 
       if (!teacherData) {
-        // Teacher profile does not exist, redirect to complete profile
-        navigate('/complete-profile');
+        setLoading(false);
+        navigate('/login', { replace: true, state: { teacherOnly: true } });
         return;
       }
 
-      // Teacher profile exists, proceed with loadData
       loadData();
     };
 
     checkTeacherProfile();
-  }, [user]);
+  }, [user, navigate]);
 
   useEffect(() => {
     if (selectedClassId && activeSeason) {

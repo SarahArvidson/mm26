@@ -1,10 +1,18 @@
-import { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useRef, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const state = location.state as { teacherOnly?: boolean } | null;
+    if (state?.teacherOnly) {
+      setError('Accès réservé aux enseignants.');
+    }
+  }, [location.state]);
   const [isTeacher, setIsTeacher] = useState(true);
   const [isTeacherSignUp, setIsTeacherSignUp] = useState(false);
   const [email, setEmail] = useState('');

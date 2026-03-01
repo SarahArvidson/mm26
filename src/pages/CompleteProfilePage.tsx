@@ -10,15 +10,13 @@ export default function CompleteProfilePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Redirect to login if no user, or to dashboard if teacher row already exists
   useEffect(() => {
     if (!user) {
-      navigate('/login');
+      navigate('/login', { replace: true });
       return;
     }
 
-    // Check if teacher row already exists
-    const checkTeacherExists = async () => {
+    const checkAccess = async () => {
       const { data: teacherData } = await supabase
         .from('teachers')
         .select('id')
@@ -26,12 +24,22 @@ export default function CompleteProfilePage() {
         .maybeSingle();
 
       if (teacherData) {
-        // Teacher row already exists, redirect to dashboard
-        navigate('/teacher-dashboard');
+        navigate('/teacher-dashboard', { replace: true });
+        return;
+      }
+
+      const { data: studentData } = await supabase
+        .from('students')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (studentData) {
+        navigate('/login', { replace: true, state: { teacherOnly: true } });
       }
     };
 
-    checkTeacherExists();
+    checkAccess();
   }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
