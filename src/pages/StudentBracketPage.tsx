@@ -51,7 +51,6 @@ export default function StudentBracketPage() {
   const [votingBurstNonce, setVotingBurstNonce] = useState(0);
   const [selectedVoteByMatchup, setSelectedVoteByMatchup] = useState<Record<string, string>>({});
   const [submittingMatchupId, setSubmittingMatchupId] = useState<string | null>(null);
-  const [votingInProgress, setVotingInProgress] = useState(false);
   const [messageIndex, setMessageIndex] = useState(0);
   const [perfPop, setPerfPop] = useState(false);
   const [perfBurstKey, setPerfBurstKey] = useState(0);
