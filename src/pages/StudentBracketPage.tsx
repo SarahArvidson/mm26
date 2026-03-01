@@ -49,6 +49,8 @@ export default function StudentBracketPage() {
   const [votingBurstMatchupId, setVotingBurstMatchupId] = useState<string | null>(null);
   const [votingBurstSongId, setVotingBurstSongId] = useState<string | null>(null);
   const [votingBurstNonce, setVotingBurstNonce] = useState(0);
+  const [selectedVoteByMatchup, setSelectedVoteByMatchup] = useState<Record<string, string>>({});
+  const [submittingMatchupId, setSubmittingMatchupId] = useState<string | null>(null);
   const [votingInProgress, setVotingInProgress] = useState(false);
   const [messageIndex, setMessageIndex] = useState(0);
   const [perfPop, setPerfPop] = useState(false);
@@ -858,73 +860,128 @@ export default function StudentBracketPage() {
                           Tu as déjà voté pour ce match.
                         </div>
                       ) : (
-                        <>
-                          {hasVoted && successShow && (
-                            <div style={{ fontSize: '14px', color: '#16A34A', fontWeight: 500, marginBottom: '10px' }}>
-                              ✓ Enregistré
-                            </div>
-                          )}
+                        (() => {
+                          const hasVoted = myVotes.some(v => v.bracket_matchup_id === matchup.id);
+                          const currentSelected = selectedVoteByMatchup[matchup.id] || null;
 
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'stretch' }}>
-                            {options.map((songId) => {
-                              const isSelected =
-                                votingBurstMatchupId === matchup.id && votingBurstSongId === songId;
+                          return (
+                            <>
+                              {hasVoted && successShow && (
+                                <div style={{ fontSize: '14px', color: '#16A34A', fontWeight: 500, marginBottom: '10px' }}>
+                                  ✓ Enregistré
+                                </div>
+                              )}
 
-                              return (
-                                <button
-                                  key={songId}
-                                  type="button"
-                                  disabled={votingInProgress || hasVoted}
-                                  onClick={async () => {
-                                    if (!currentClassId || !currentStudentId || !activeSeason) return;
-                                    setVotingInProgress(true);
-                                    setError(null);
-                                    const { data: inserted, error: insertErr } = await supabase
-                                      .from('student_votes')
-                                      .insert({
-                                        season_id: activeSeason.id,
-                                        class_id: currentClassId,
-                                        bracket_matchup_id: matchup.id,
-                                        student_id: currentStudentId,
-                                        picked_song_id: songId
-                                      })
-                                      .select()
-                                      .single();
-                                    setVotingInProgress(false);
-                                    if (insertErr) {
-                                      setError(insertErr.message);
-                                      return;
-                                    }
-                                    setMyVotes(prev => [...prev, inserted as StudentVote]);
-                                    setVotingSuccessMatchupId(matchup.id);
-                                    setVotingBurstNonce(n => n + 1);
-                                    setVotingBurstMatchupId(matchup.id);
-                                    setVotingBurstSongId(songId);
-                                    window.setTimeout(() => { setVotingBurstMatchupId(null); setVotingBurstSongId(null); }, 800);
-                                    window.setTimeout(() => setVotingSuccessMatchupId(null), 3000);
-                                  }}
-                                  style={{
-                                    position: 'relative',
-                                    minWidth: '140px',
-                                    padding: '12px 16px',
-                                    border: '2px solid #D1D5DB',
-                                    borderRadius: '8px',
-                                    backgroundColor: '#FFFFFF',
-                                    cursor: votingInProgress || hasVoted ? 'not-allowed' : 'pointer',
-                                    fontSize: '14px',
-                                    textAlign: 'left',
-                                    opacity: votingInProgress || hasVoted ? 0.7 : 1
-                                  }}
-                                >
-                                  {isSelected && (
-                                    <ArcadeBurst key={`${matchup.id}-${songId}-${votingBurstNonce}`} />
-                                  )}
-                                  {getSongLabel(songId)}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'stretch' }}>
+                                {options.map((songId) => {
+                                  const isPicked = currentSelected === songId;
+                                  const isBursting =
+                                    votingBurstMatchupId === matchup.id && votingBurstSongId === songId;
+
+                                  return (
+                                    <button
+                                      key={songId}
+                                      type="button"
+                                      aria-pressed={isPicked}
+                                      aria-disabled={hasVoted}
+                                      onClick={() => {
+                                        if (hasVoted) return;
+
+                                        setSelectedVoteByMatchup(prev => ({ ...prev, [matchup.id]: songId }));
+
+                                        setVotingBurstNonce(n => n + 1);
+                                        setVotingBurstMatchupId(matchup.id);
+                                        setVotingBurstSongId(songId);
+                                        window.setTimeout(() => {
+                                          setVotingBurstMatchupId(null);
+                                          setVotingBurstSongId(null);
+                                        }, 500);
+                                      }}
+                                      style={{
+                                        position: 'relative',
+                                        minWidth: '140px',
+                                        padding: '12px 16px',
+                                        borderRadius: '8px',
+                                        backgroundColor: '#FFFFFF',
+                                        cursor: 'pointer',
+                                        fontSize: '14px',
+                                        textAlign: 'left',
+                                        opacity: hasVoted ? 0.7 : 1,
+                                        border: isPicked ? '2px solid #7C3AED' : '2px solid #D1D5DB',
+                                        boxShadow: isPicked ? '0 0 0 2px rgba(124, 58, 237, 0.25)' : 'none',
+                                        transform: isPicked ? 'scale(1.02)' : 'scale(1)',
+                                        transition: 'transform 120ms ease, box-shadow 200ms ease, border-color 200ms ease'
+                                      }}
+                                    >
+                                      {isBursting && <ArcadeBurst key={`${matchup.id}-${songId}-${votingBurstNonce}`} />}
+                                      {getSongLabel(songId)}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+
+                              {!hasVoted && currentSelected && (
+                                <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      if (!currentClassId || !currentStudentId || !activeSeason) return;
+                                      if (hasVoted) return;
+                                      if (!currentSelected) return;
+                                      if (submittingMatchupId) return;
+
+                                      setSubmittingMatchupId(matchup.id);
+                                      setError(null);
+
+                                      const { data: inserted, error: insertErr } = await supabase
+                                        .from('student_votes')
+                                        .insert({
+                                          season_id: activeSeason.id,
+                                          class_id: currentClassId,
+                                          bracket_matchup_id: matchup.id,
+                                          student_id: currentStudentId,
+                                          picked_song_id: currentSelected
+                                        })
+                                        .select()
+                                        .single();
+
+                                      setSubmittingMatchupId(null);
+
+                                      if (insertErr) {
+                                        setError(insertErr.message);
+                                        return;
+                                      }
+
+                                      setMyVotes(prev => [...prev, inserted as StudentVote]);
+                                      setVotingSuccessMatchupId(matchup.id);
+
+                                      setSelectedVoteByMatchup(prev => {
+                                        const next = { ...prev };
+                                        delete next[matchup.id];
+                                        return next;
+                                      });
+
+                                      window.setTimeout(() => setVotingSuccessMatchupId(null), 2500);
+                                    }}
+                                    style={{
+                                      backgroundColor: submittingMatchupId === matchup.id ? '#A78BFA' : '#7C3AED',
+                                      color: '#FFFFFF',
+                                      border: 'none',
+                                      borderRadius: '8px',
+                                      padding: '10px 16px',
+                                      fontSize: '14px',
+                                      fontWeight: 700,
+                                      cursor: 'pointer',
+                                      opacity: submittingMatchupId === matchup.id ? 0.85 : 1
+                                    }}
+                                  >
+                                    {submittingMatchupId === matchup.id ? 'Validation...' : 'Valider mon vote'}
+                                  </button>
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()
                       )}
                     </div>
                   );
