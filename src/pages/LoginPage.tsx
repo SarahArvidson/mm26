@@ -523,7 +523,7 @@ export default function LoginPage() {
             transition: 'all 0.2s ease'
           }}
         >
-          Student
+          Élève
         </button>
         <button 
           onClick={() => { setError(null); setIsTeacher(true); }}
@@ -826,7 +826,7 @@ export default function LoginPage() {
               {studentMatches.length > 1 && !selectedStudentId ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <p style={{ fontSize: '14px', color: '#374151', textAlign: 'center' }}>
-                    This username exists in multiple classes. Please select your class:
+                    Ce nom existe dans plusieurs classes. Choisis ta classe :
                   </p>
                   {studentMatches.map((match) => (
                     <button
@@ -876,14 +876,14 @@ export default function LoginPage() {
                       textDecoration: 'underline'
                     }}
                   >
-                    Back
+                    Retour
                   </button>
                 </div>
               ) : (
                 <form onSubmit={handleStudentLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <div>
                     <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
-                      Username:
+                      Nom d'utilisateur :
                     </label>
                     <input
                       type="text"
@@ -904,7 +904,7 @@ export default function LoginPage() {
                   </div>
                   <div>
                     <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
-                      Password:
+                      Mot de passe :
                     </label>
                     <input
                       type="password"
@@ -966,7 +966,7 @@ export default function LoginPage() {
                   transition: 'opacity 0.2s ease'
                 }}
               >
-                {loading ? 'Logging in...' : 'Login'}
+                {loading ? 'Connexion...' : 'Connexion'}
               </button>
               <div style={{ textAlign: 'center', marginTop: '8px' }}>
                 <button

@@ -81,7 +81,9 @@ export default function Layout() {
           borderTop: "1px solid #E5E7EB",
         }}
       >
-        <p style={{ margin: "0 0 8px 0" }}>© Sarah Arvidson 2026</p>
+        <p style={{ margin: "0 0 8px 0" }}>
+          © 2026 Sarah Arvidson. All rights reserved.
+        </p>
         <p style={{ margin: 0 }}>
           <a
             href="https://github.com/SarahArvidson"
@@ -97,14 +99,14 @@ export default function Layout() {
             rel="noopener noreferrer"
             style={{ marginRight: "12px" }}
           >
-            maniemusicale.info
+            Maniemusicale.info
           </a>
           <a
             href="https://www.venmo.com/u/Sarah-Arvidson"
             target="_blank"
             rel="noopener noreferrer"
           >
-            faites un don !
+            Laisser un pourboire
           </a>
         </p>
       </footer>
