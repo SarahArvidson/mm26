@@ -48,6 +48,7 @@ export default function StudentBracketPage() {
   const [votingSuccessMatchupId, setVotingSuccessMatchupId] = useState<string | null>(null);
   const [votingBurstMatchupId, setVotingBurstMatchupId] = useState<string | null>(null);
   const [votingBurstSongId, setVotingBurstSongId] = useState<string | null>(null);
+  const [votingBurstNonce, setVotingBurstNonce] = useState(0);
   const [votingInProgress, setVotingInProgress] = useState(false);
   const [messageIndex, setMessageIndex] = useState(0);
   const [perfPop, setPerfPop] = useState(false);
@@ -885,6 +886,7 @@ export default function StudentBracketPage() {
                                   }
                                   setMyVotes(prev => [...prev, inserted as StudentVote]);
                                   setVotingSuccessMatchupId(matchup.id);
+                                  setVotingBurstNonce(n => n + 1);
                                   setVotingBurstMatchupId(matchup.id);
                                   setVotingBurstSongId(songId);
                                   setTimeout(() => { setVotingBurstMatchupId(null); setVotingBurstSongId(null); }, 800);
@@ -904,7 +906,7 @@ export default function StudentBracketPage() {
                                 }}
                               >
                                 {isSelected && (
-                                  <ArcadeBurst />
+                                  <ArcadeBurst key={`${matchup.id}-${songId}-${votingBurstNonce}`} />
                                 )}
                                 {getSongLabel(songId)}
                               </button>

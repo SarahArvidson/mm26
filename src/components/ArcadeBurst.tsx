@@ -1,6 +1,6 @@
 export default function ArcadeBurst() {
   return (
-    <div className="arcade-burst">
+    <div className="arcade-burst" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 50 }}>
       {[
         { top: '0%', left: '10%', dx: '0px', dy: '-35px' },
         { top: '0%', left: '30%', dx: '0px', dy: '-35px' },
