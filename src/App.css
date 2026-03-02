@@ -48,6 +48,12 @@ h1 {
   line-height: 1.1;
 }
 
+.font-bungee-inline { font-family: "Bungee Inline", system-ui, sans-serif; }
+.font-permanent-marker { font-family: "Permanent Marker", system-ui, sans-serif; }
+.font-kalam { font-family: "Kalam", system-ui, sans-serif; }
+.font-caveat-brush { font-family: "Caveat Brush", system-ui, sans-serif; }
+.font-kavoon { font-family: "Kavoon", system-ui, sans-serif; }
+
 #root {
   width: 100%;
   max-width: none;
