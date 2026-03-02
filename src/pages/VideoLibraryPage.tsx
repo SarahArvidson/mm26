@@ -9,6 +9,56 @@ type SongRow = {
   youtube_url: string | null;
 };
 
+const REVEAL_VIDEOS: { title: string; youtube_url: string }[] = [
+  { title: 'Révélation 1', youtube_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' },
+  { title: 'Révélation 2', youtube_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' },
+  { title: 'Révélation 3', youtube_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' },
+];
+
+const LAST_YEAR_SONGS: { title: string; artist: string; youtube_url: string | null }[] = [
+  { title: 'Chanson 1', artist: 'Artiste A', youtube_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' },
+  { title: 'Chanson 2', artist: 'Artiste B', youtube_url: null },
+  { title: 'Chanson 3', artist: 'Artiste C', youtube_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' },
+  { title: 'Chanson 4', artist: 'Artiste D', youtube_url: null },
+  { title: 'Chanson 5', artist: 'Artiste E', youtube_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' },
+  { title: 'Chanson 6', artist: 'Artiste F', youtube_url: null },
+];
+
+const accordionCardStyle = {
+  border: '1px solid #E5E7EB',
+  borderRadius: '12px',
+  backgroundColor: '#FFFFFF',
+  marginBottom: '16px',
+  overflow: 'hidden' as const,
+};
+
+const summaryStyle = {
+  display: 'flex' as const,
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  padding: '14px 16px',
+  cursor: 'pointer' as const,
+  fontWeight: 600,
+  fontSize: '15px',
+  color: '#111827',
+  listStyle: 'none' as const,
+};
+
+const contentStyle = {
+  padding: '12px 16px 16px',
+  borderTop: '1px solid #E5E7EB',
+  display: 'flex' as const,
+  flexDirection: 'column' as const,
+  gap: '12px',
+};
+
+const itemCardStyle = {
+  padding: '14px',
+  border: '1px solid #E5E7EB',
+  borderRadius: '12px',
+  backgroundColor: '#FFFFFF',
+};
+
 export default function VideoLibraryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,46 +118,94 @@ export default function VideoLibraryPage() {
         </p>
       )}
 
-      {!loading && !error && songs.length === 0 && (
-        <p style={{ fontSize: '14px', color: '#6B7280' }}>
-          Pas de vidéos pour le moment.
-        </p>
-      )}
-
-      {!loading && !error && songs.length > 0 && (
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-          {songs.map((song) => (
-            <li
-              key={song.id}
-              style={{
-                marginBottom: '16px',
-                padding: '14px',
-                border: '1px solid #E5E7EB',
-                borderRadius: '12px',
-                backgroundColor: '#FFFFFF',
-              }}
-            >
-              <div style={{ fontWeight: 600, fontSize: '15px', color: '#111827', marginBottom: '4px' }}>
-                « {song.title} » – {song.artist}
-              </div>
-
-              {song.youtube_url ? (
-                <a
-                  href={song.youtube_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ fontSize: '14px', color: '#7C3AED' }}
-                >
-                  Voir sur YouTube
-                </a>
+      {!loading && (
+        <>
+          <details open style={accordionCardStyle}>
+            <summary style={summaryStyle}>
+              Chansons du tableau (cette année)
+              <span style={{ fontSize: '14px', color: '#6B7280' }}>▾</span>
+            </summary>
+            <div style={contentStyle}>
+              {songs.length === 0 ? (
+                <p style={{ fontSize: '14px', color: '#6B7280', margin: 0 }}>
+                  Pas de chansons pour le moment.
+                </p>
               ) : (
-                <div style={{ fontSize: '14px', color: '#6B7280' }}>
-                  Lien bientôt
-                </div>
+                songs.map((song) => (
+                  <div key={song.id} style={itemCardStyle}>
+                    <div style={{ fontWeight: 600, fontSize: '15px', color: '#111827', marginBottom: '4px' }}>
+                      « {song.title} » – {song.artist}
+                    </div>
+                    {song.youtube_url ? (
+                      <a
+                        href={song.youtube_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ fontSize: '14px', color: '#7C3AED' }}
+                      >
+                        Voir sur YouTube
+                      </a>
+                    ) : (
+                      <div style={{ fontSize: '14px', color: '#6B7280' }}>Lien bientôt</div>
+                    )}
+                  </div>
+                ))
               )}
-            </li>
-          ))}
-        </ul>
+            </div>
+          </details>
+
+          <details style={accordionCardStyle}>
+            <summary style={summaryStyle}>
+              Vidéos révélation (cette année)
+              <span style={{ fontSize: '14px', color: '#6B7280' }}>▾</span>
+            </summary>
+            <div style={contentStyle}>
+              {REVEAL_VIDEOS.map((item, i) => (
+                <div key={i} style={itemCardStyle}>
+                  <div style={{ fontWeight: 600, fontSize: '15px', color: '#111827', marginBottom: '4px' }}>
+                    {item.title}
+                  </div>
+                  <a
+                    href={item.youtube_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ fontSize: '14px', color: '#7C3AED' }}
+                  >
+                    Voir sur YouTube
+                  </a>
+                </div>
+              ))}
+            </div>
+          </details>
+
+          <details style={accordionCardStyle}>
+            <summary style={summaryStyle}>
+              Chansons (année dernière)
+              <span style={{ fontSize: '14px', color: '#6B7280' }}>▾</span>
+            </summary>
+            <div style={contentStyle}>
+              {LAST_YEAR_SONGS.map((item, i) => (
+                <div key={i} style={itemCardStyle}>
+                  <div style={{ fontWeight: 600, fontSize: '15px', color: '#111827', marginBottom: '4px' }}>
+                    « {item.title} » – {item.artist}
+                  </div>
+                  {item.youtube_url ? (
+                    <a
+                      href={item.youtube_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ fontSize: '14px', color: '#7C3AED' }}
+                    >
+                      Voir sur YouTube
+                    </a>
+                  ) : (
+                    <div style={{ fontSize: '14px', color: '#6B7280' }}>Lien bientôt</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </details>
+        </>
       )}
     </div>
   );
