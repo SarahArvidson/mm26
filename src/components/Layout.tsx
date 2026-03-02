@@ -37,76 +37,71 @@ export default function Layout() {
     navigate("/login");
   };
 
+  const headerInner = { maxWidth: 1100, margin: "0 auto" as const, padding: "8px 24px 16px" };
+
   return (
-    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px" }}>
-      <header
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "12px",
-          padding: "8px 0 16px",
-          borderBottom: "1px solid #E5E7EB",
-        }}
-      >
-        {isWideScreen && (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr auto 1fr",
-              alignItems: "center",
-              width: "100%",
-            }}
-          >
-            <div />
-            <nav
+    <div>
+      <header style={{ borderBottom: "1px solid #E5E7EB", padding: "8px 0 16px" }}>
+        <div style={headerInner}>
+          {isWideScreen && (
+            <div
               style={{
-                display: "flex",
-                flexDirection: "row",
-                flexWrap: "wrap",
-                gap: "16px",
+                display: "grid",
+                gridTemplateColumns: "1fr auto 1fr",
                 alignItems: "center",
+                width: "100%",
               }}
             >
-              <Link to="/accueil" onClick={() => setMenuOpen(false)}>
-                Accueil
-              </Link>
-              <Link to="/login" onClick={() => setMenuOpen(false)}>
-                Connexion
-              </Link>
-              {studentSession && (
-                <Link to="/student-bracket" onClick={() => setMenuOpen(false)}>
-                  Mon tableau
+              <div />
+              <nav
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: "16px",
+                  alignItems: "center",
+                }}
+              >
+                <Link to="/accueil" onClick={() => setMenuOpen(false)}>
+                  Accueil
                 </Link>
-              )}
-              {isTeacher === true && (
-                <Link to="/teacher-dashboard" onClick={() => setMenuOpen(false)}>
-                  Tableau de bord
+                <Link to="/login" onClick={() => setMenuOpen(false)}>
+                  Connexion
                 </Link>
-              )}
-              <Link to="/master-bracket" onClick={() => setMenuOpen(false)}>
-                Tableau maître
-              </Link>
-              <Link to="/video-library" onClick={() => setMenuOpen(false)}>
-                Vidéos
-              </Link>
-              <Link to="/instructions" onClick={() => setMenuOpen(false)}>
-                Instructions
-              </Link>
-              <Link to="/settings" onClick={() => setMenuOpen(false)}>
-                Paramètres
-              </Link>
-            </nav>
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              {(user || studentSession) && (
-                <button onClick={handleLogout}>Déconnexion</button>
-              )}
+                {studentSession && (
+                  <Link to="/student-bracket" onClick={() => setMenuOpen(false)}>
+                    Mon tableau
+                  </Link>
+                )}
+                {isTeacher === true && (
+                  <Link to="/teacher-dashboard" onClick={() => setMenuOpen(false)}>
+                    Tableau de bord
+                  </Link>
+                )}
+                <Link to="/master-bracket" onClick={() => setMenuOpen(false)}>
+                  Tableau maître
+                </Link>
+                <Link to="/video-library" onClick={() => setMenuOpen(false)}>
+                  Vidéos
+                </Link>
+                <Link to="/instructions" onClick={() => setMenuOpen(false)}>
+                  Instructions
+                </Link>
+                <Link to="/settings" onClick={() => setMenuOpen(false)}>
+                  Paramètres
+                </Link>
+              </nav>
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                {(user || studentSession) && (
+                  <button onClick={handleLogout}>Déconnexion</button>
+                )}
+              </div>
             </div>
-          </div>
-        )}
-        {!isWideScreen && (
-          <button onClick={() => setMenuOpen(!menuOpen)}>☰</button>
-        )}
+          )}
+          {!isWideScreen && (
+            <button onClick={() => setMenuOpen(!menuOpen)}>☰</button>
+          )}
+        </div>
       </header>
       {!isWideScreen && menuOpen && (
         <div
@@ -167,10 +162,11 @@ export default function Layout() {
           </nav>
         </div>
       )}
-      <main style={{ padding: "24px 0", minHeight: "60vh" }}>
-        <Outlet />
-      </main>
-      <footer
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px" }}>
+        <main style={{ padding: "24px 0", minHeight: "60vh" }}>
+          <Outlet />
+        </main>
+        <footer
         style={{
           marginTop: "2rem",
           padding: "1.5rem 0",
@@ -209,6 +205,7 @@ export default function Layout() {
           </a>
         </p>
       </footer>
+      </div>
     </div>
   );
 }
