@@ -127,9 +127,6 @@ export default function Layout() {
                 <Link to="/instructions" onClick={() => setMenuOpen(false)}>
                   Informations
                 </Link>
-                <Link to="/settings" onClick={() => setMenuOpen(false)}>
-                  Paramètres
-                </Link>
               </nav>
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
                 {isLoggedIn && (
@@ -210,13 +207,6 @@ export default function Layout() {
               style={{ display: "block", padding: "10px 12px" }}
             >
               Informations
-            </Link>
-            <Link
-              to="/settings"
-              onClick={() => setMenuOpen(false)}
-              style={{ display: "block", padding: "10px 12px" }}
-            >
-              Paramètres
             </Link>
             {isLoggedIn && (
               <button

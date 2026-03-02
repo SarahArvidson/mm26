@@ -495,15 +495,56 @@ export default function StudentBracketPage() {
   }, [openVotingGates, matchups, masterPicks]);
 
   if (loading) {
-    return <div>Chargement...</div>;
+    return (
+      <div
+        style={{
+          minHeight: "50vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          textAlign: "center",
+          color: "#6B7280",
+          fontSize: "14px",
+        }}
+      >
+        Chargement...
+      </div>
+    );
   }
 
   if (error && !activeSeason) {
-    return <div>Erreur : {error}</div>;
+    return (
+      <div
+        style={{
+          minHeight: "50vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          textAlign: "center",
+          fontSize: "14px",
+        }}
+      >
+        <div style={{ color: "#DC2626" }}>Erreur : {error}</div>
+      </div>
+    );
   }
 
   if (!activeSeason) {
-    return <div>Aucune saison active</div>;
+    return (
+      <div
+        style={{
+          minHeight: "50vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          textAlign: "center",
+          color: "#6B7280",
+          fontSize: "14px",
+        }}
+      >
+        Aucune saison active
+      </div>
+    );
   }
 
   const matchupsByRound = getMatchupsByRound();
@@ -598,7 +639,7 @@ export default function StudentBracketPage() {
           marginBottom: "32px",
         }}
       >
-        🎵 Tableaumanie 2026
+        Tableaumanie 2026
       </h1>
       <p
         style={{

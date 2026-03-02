@@ -488,6 +488,7 @@ export default function TeacherDashboardPage() {
             fontWeight: 600,
             color: "#111827",
             textAlign: "left",
+            fontFamily: '"Arvo", serif',
           }}
         >
           {title}
@@ -513,20 +514,61 @@ export default function TeacherDashboardPage() {
   };
 
   if (loading) {
-    return <div>Chargement...</div>;
+    return (
+      <div
+        style={{
+          minHeight: "50vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          textAlign: "center",
+          color: "#6B7280",
+          fontSize: "14px",
+        }}
+      >
+        Chargement...
+      </div>
+    );
   }
 
   if (error && !activeSeason) {
-    return <div>Erreur : {error}</div>;
+    return (
+      <div
+        style={{
+          minHeight: "50vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          textAlign: "center",
+          fontSize: "14px",
+        }}
+      >
+        <div style={{ color: "#DC2626" }}>Erreur : {error}</div>
+      </div>
+    );
   }
 
   if (!activeSeason) {
-    return <div>No active season</div>;
+    return (
+      <div
+        style={{
+          minHeight: "50vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          textAlign: "center",
+          color: "#6B7280",
+          fontSize: "14px",
+        }}
+      >
+        No active season
+      </div>
+    );
   }
 
   return (
     <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "24px" }}>
-      <h1>Tableaumanie Teacher - {activeSeason.name}</h1>
+      <h1>Tableaumanie Espace Enseignant - {activeSeason.name}</h1>
       {error && <div>Erreur : {error}</div>}
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
         {renderPanel(
@@ -558,6 +600,7 @@ export default function TeacherDashboardPage() {
                     color: "#374151",
                     marginBottom: "8px",
                     fontSize: "14px",
+                    fontFamily: '"Arvo", serif',
                   }}
                 >
                   Choisir une classe

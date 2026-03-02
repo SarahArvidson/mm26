@@ -107,15 +107,34 @@ export default function VideoLibraryPage() {
       </p>
 
       {loading && (
-        <p style={{ fontSize: '14px', color: '#6B7280' }}>
+        <div
+          style={{
+            minHeight: '50vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            color: '#6B7280',
+            fontSize: '14px',
+          }}
+        >
           Chargement...
-        </p>
+        </div>
       )}
 
       {!loading && error && (
-        <p style={{ fontSize: '14px', color: '#DC2626' }}>
-          Erreur: {error}
-        </p>
+        <div
+          style={{
+            minHeight: '50vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            fontSize: '14px',
+          }}
+        >
+          <p style={{ margin: 0, color: '#DC2626' }}>Erreur: {error}</p>
+        </div>
       )}
 
       {!loading && (
@@ -125,28 +144,47 @@ export default function VideoLibraryPage() {
               Chansons du tableau (cette année)
               <span style={{ fontSize: '14px', color: '#6B7280' }}>▾</span>
             </summary>
-            <div style={contentStyle}>
+            <div style={{ ...contentStyle, gap: '16px' }}>
               {songs.length === 0 ? (
                 <p style={{ fontSize: '14px', color: '#6B7280', margin: 0 }}>
                   Pas de chansons pour le moment.
                 </p>
               ) : (
                 songs.map((song) => (
-                  <div key={song.id} style={itemCardStyle}>
-                    <div style={{ fontWeight: 600, fontSize: '15px', color: '#111827', marginBottom: '4px' }}>
-                      « {song.title} » – {song.artist}
-                    </div>
+                  <div
+                    key={song.id}
+                    style={{
+                      padding: '16px',
+                      border: '1px solid #E5E7EB',
+                      borderRadius: '8px',
+                      backgroundColor: '#FFFFFF',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                      textAlign: 'center',
+                    }}
+                  >
                     {song.youtube_url ? (
                       <a
                         href={song.youtube_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        style={{ fontSize: '14px', color: '#7C3AED' }}
+                        style={{
+                          fontWeight: 600,
+                          fontSize: '15px',
+                          color: '#7C3AED',
+                          textDecoration: 'none',
+                        }}
                       >
-                        Voir sur YouTube
+                        « {song.title} » – {song.artist}
                       </a>
                     ) : (
-                      <div style={{ fontSize: '14px', color: '#6B7280' }}>Lien bientôt</div>
+                      <>
+                        <div style={{ fontWeight: 600, fontSize: '15px', color: '#111827' }}>
+                          « {song.title} » – {song.artist}
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#6B7280', marginTop: '4px' }}>
+                          Lien bientôt
+                        </div>
+                      </>
                     )}
                   </div>
                 ))
