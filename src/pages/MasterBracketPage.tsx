@@ -2,9 +2,10 @@
 // Scoring is server-triggered when master_results change.
 // Do NOT compute or write student_brackets.points from the UI.
 
-import { useEffect, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import { supabase } from "../lib/supabase";
 import {
   resolveActiveSeason,
   getValidMasterOptionsForMatchup,
@@ -13,14 +14,15 @@ import {
   type Song,
   type MasterResult,
   type UUID,
-} from '../utils/bracketLogic';
-import RapidEntryPanel from '../components/RapidEntryPanel';
+} from "../utils/bracketLogic";
+import RapidEntryPanel from "../components/RapidEntryPanel";
 
 export default function MasterBracketPage() {
-  const { user } = useAuth();
+  const { user, studentSession } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isTeacher, setIsTeacher] = useState(false);
   const [activeSeason, setActiveSeason] = useState<Season | null>(null);
   const [matchups, setMatchups] = useState<BracketMatchup[]>([]);
   const [songs, setSongs] = useState<Song[]>([]);
@@ -28,9 +30,18 @@ export default function MasterBracketPage() {
   const [saving, setSaving] = useState(false);
 
   const canEdit = isAdmin === true;
+  const isStudent = Boolean(studentSession);
+  const isPublic = !user;
+  const viewerCanSeeWinners = isTeacher === true || isAdmin === true;
+  const viewerIsRestricted = isPublic || isStudent;
 
   useEffect(() => {
-    if (user) checkAdmin();
+    if (user) {
+      checkAdmin();
+      checkTeacher();
+    } else {
+      setIsTeacher(false);
+    }
     loadData();
   }, [user]);
 
@@ -38,7 +49,17 @@ export default function MasterBracketPage() {
     if (!user) return;
     const { data: userData } = await supabase.supabase.auth.getUser();
     const role = userData.user?.app_metadata?.role;
-    setIsAdmin(role === 'admin');
+    setIsAdmin(role === "admin");
+  };
+
+  const checkTeacher = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("teachers")
+      .select("id")
+      .eq("id", user.id)
+      .maybeSingle();
+    setIsTeacher(!!data);
   };
 
   const loadData = async () => {
@@ -48,15 +69,15 @@ export default function MasterBracketPage() {
 
       // Fetch all seasons
       const { data: seasonsData, error: seasonsError } = await supabase
-        .from('seasons')
-        .select('*');
+        .from("seasons")
+        .select("*");
 
       if (seasonsError) throw seasonsError;
-      if (!seasonsData) throw new Error('No seasons found');
+      if (!seasonsData) throw new Error("No seasons found");
 
       const active = resolveActiveSeason(seasonsData as Season[]);
       if (!active) {
-        setError('Aucune saison active.');
+        setError("Aucune saison active.");
         setLoading(false);
         return;
       }
@@ -65,34 +86,43 @@ export default function MasterBracketPage() {
 
       // Fetch bracket matchups for active season
       const { data: matchupsData, error: matchupsError } = await supabase
-        .from('bracket_matchups')
-        .select('*')
-        .eq('season_id', active.id)
-        .order('round', { ascending: true })
-        .order('matchup_number', { ascending: true });
+        .from("bracket_matchups")
+        .select("*")
+        .eq("season_id", active.id)
+        .order("round", { ascending: true })
+        .order("matchup_number", { ascending: true });
 
       if (matchupsError) throw matchupsError;
       setMatchups((matchupsData || []) as BracketMatchup[]);
 
       // Fetch songs for active season
       const { data: songsData, error: songsError } = await supabase
-        .from('songs')
-        .select('*')
-        .eq('season_id', active.id);
+        .from("songs")
+        .select("*")
+        .eq("season_id", active.id);
 
       if (songsError) throw songsError;
       setSongs((songsData || []) as Song[]);
 
       // Fetch master results
       const { data: resultsData, error: resultsError } = await supabase
-        .from('master_results')
-        .select('*')
-        .eq('season_id', active.id);
+        .from("master_results")
+        .select("*")
+        .eq("season_id", active.id);
 
       if (resultsError) throw resultsError;
       setMasterResults((resultsData || []) as MasterResult[]);
     } catch (err: any) {
-      setError(err.message || 'Failed to load data');
+      const message = err?.message || "";
+      if (
+        message.toLowerCase().includes("permission") ||
+        message.toLowerCase().includes("auth") ||
+        message.toLowerCase().includes("rls")
+      ) {
+        setError("Connexion requise pour voir cette page.");
+      } else {
+        setError(message || "Failed to load data");
+      }
     } finally {
       setLoading(false);
     }
@@ -109,27 +139,27 @@ export default function MasterBracketPage() {
 
     // Fetch fresh bracket_matchups for active season
     const { data: allMatchupsData, error: matchupsError } = await supabase
-      .from('bracket_matchups')
-      .select('*')
-      .eq('season_id', activeSeason.id)
-      .order('round', { ascending: true })
-      .order('matchup_number', { ascending: true });
+      .from("bracket_matchups")
+      .select("*")
+      .eq("season_id", activeSeason.id)
+      .order("round", { ascending: true })
+      .order("matchup_number", { ascending: true });
 
     if (matchupsError) throw matchupsError;
     const allMatchups = (allMatchupsData || []) as BracketMatchup[];
 
     // Fetch fresh master_results for active season
     const { data: allResultsData, error: resultsError } = await supabase
-      .from('master_results')
-      .select('*')
-      .eq('season_id', activeSeason.id);
+      .from("master_results")
+      .select("*")
+      .eq("season_id", activeSeason.id);
 
     if (resultsError) throw resultsError;
     const allResults = (allResultsData || []) as MasterResult[];
 
     // Build master results map: matchupId -> winner_song_id
     const masterResultsMap = new Map<UUID, UUID>();
-    allResults.forEach(result => {
+    allResults.forEach((result) => {
       masterResultsMap.set(result.bracket_matchup_id, result.winner_song_id);
     });
 
@@ -142,37 +172,46 @@ export default function MasterBracketPage() {
     };
 
     // Build updates for rounds 2-4
-    const updates: Array<{ matchupId: UUID; song1_id: UUID | null; song2_id: UUID | null }> = [];
+    const updates: Array<{
+      matchupId: UUID;
+      song1_id: UUID | null;
+      song2_id: UUID | null;
+    }> = [];
 
     // Process rounds 1-3 to propagate to rounds 2-4
     for (let round = 1; round <= 3; round++) {
       const roundStart = roundStarts[round];
       const nextRoundStart = roundStarts[round + 1];
 
-      const roundMatchups = allMatchups.filter(m => m.round === round);
-      
+      const roundMatchups = allMatchups.filter((m) => m.round === round);
+
       for (const matchup of roundMatchups) {
         const indexInRound = matchup.matchup_number - roundStart;
         const nextMatchupNumber = nextRoundStart + Math.floor(indexInRound / 2);
-        
+
         const nextMatchup = allMatchups.find(
-          m => m.round === round + 1 && m.matchup_number === nextMatchupNumber
+          (m) =>
+            m.round === round + 1 && m.matchup_number === nextMatchupNumber,
         );
-        
+
         if (!nextMatchup) continue;
 
         const winnerSongId = masterResultsMap.get(matchup.id) || null;
         const isSong1 = indexInRound % 2 === 0;
 
         // Find or create update entry for this next matchup
-        let updateEntry = updates.find(u => {
-          const m = allMatchups.find(m => m.id === u.matchupId);
-          return m && m.round === round + 1 && m.matchup_number === nextMatchupNumber;
+        let updateEntry = updates.find((u) => {
+          const m = allMatchups.find((m) => m.id === u.matchupId);
+          return (
+            m && m.round === round + 1 && m.matchup_number === nextMatchupNumber
+          );
         });
 
         if (!updateEntry) {
           // Initialize with current values
-          const currentMatchup = allMatchups.find(m => m.id === nextMatchup.id);
+          const currentMatchup = allMatchups.find(
+            (m) => m.id === nextMatchup.id,
+          );
           updateEntry = {
             matchupId: nextMatchup.id,
             song1_id: currentMatchup?.song1_id || null,
@@ -192,21 +231,21 @@ export default function MasterBracketPage() {
 
     // Apply updates only if values changed
     for (const update of updates) {
-      const currentMatchup = allMatchups.find(m => m.id === update.matchupId);
+      const currentMatchup = allMatchups.find((m) => m.id === update.matchupId);
       if (!currentMatchup) continue;
 
-      const needsUpdate = 
+      const needsUpdate =
         currentMatchup.song1_id !== update.song1_id ||
         currentMatchup.song2_id !== update.song2_id;
 
       if (needsUpdate) {
         const { error: updateError } = await supabase
-          .from('bracket_matchups')
+          .from("bracket_matchups")
           .update({
             song1_id: update.song1_id,
             song2_id: update.song2_id,
           })
-          .eq('id', update.matchupId);
+          .eq("id", update.matchupId);
 
         if (updateError) throw updateError;
       }
@@ -214,17 +253,19 @@ export default function MasterBracketPage() {
 
     // Refresh matchups state
     const { data: refreshedMatchups, error: refreshError } = await supabase
-      .from('bracket_matchups')
-      .select('*')
-      .eq('season_id', activeSeason.id)
-      .order('round', { ascending: true })
-      .order('matchup_number', { ascending: true });
+      .from("bracket_matchups")
+      .select("*")
+      .eq("season_id", activeSeason.id)
+      .order("round", { ascending: true })
+      .order("matchup_number", { ascending: true });
 
     if (refreshError) throw refreshError;
     setMatchups((refreshedMatchups || []) as BracketMatchup[]);
   };
 
-  const handleBatchMasterUpdate = async (updates: Array<{ matchupId: UUID; songId: string }>) => {
+  const handleBatchMasterUpdate = async (
+    updates: Array<{ matchupId: UUID; songId: string }>,
+  ) => {
     if (!canEdit) return;
     if (!activeSeason || saving) return;
 
@@ -237,10 +278,10 @@ export default function MasterBracketPage() {
         // Handle clearing winner (empty string)
         if (!songId) {
           const { error: delErr } = await supabase
-            .from('master_results')
+            .from("master_results")
             .delete()
-            .eq('season_id', activeSeason.id)
-            .eq('bracket_matchup_id', matchupId);
+            .eq("season_id", activeSeason.id)
+            .eq("bracket_matchup_id", matchupId);
 
           if (delErr) throw delErr;
           continue;
@@ -249,7 +290,7 @@ export default function MasterBracketPage() {
         // Handle setting/updating winner: single upsert scoped by season + matchup
         const now = new Date().toISOString();
         const { error: upsertErr } = await supabase
-          .from('master_results')
+          .from("master_results")
           .upsert(
             {
               season_id: activeSeason.id,
@@ -257,7 +298,7 @@ export default function MasterBracketPage() {
               winner_song_id: songId,
               updated_at: now,
             },
-            { onConflict: 'season_id,bracket_matchup_id' }
+            { onConflict: "season_id,bracket_matchup_id" },
           );
 
         if (upsertErr) throw upsertErr;
@@ -268,9 +309,9 @@ export default function MasterBracketPage() {
 
       // Refresh master_results state from DB
       const { data: refreshedResults, error: refreshedErr } = await supabase
-        .from('master_results')
-        .select('*')
-        .eq('season_id', activeSeason.id);
+        .from("master_results")
+        .select("*")
+        .eq("season_id", activeSeason.id);
 
       if (refreshedErr) throw refreshedErr;
       setMasterResults((refreshedResults || []) as MasterResult[]);
@@ -282,8 +323,8 @@ export default function MasterBracketPage() {
   };
 
   const getSongLabel = (songId: UUID): string => {
-    const song = songs.find(s => s.id === songId);
-    if (!song) return '';
+    const song = songs.find((s) => s.id === songId);
+    if (!song) return "";
     return `« ${song.title} » – ${song.artist}`;
   };
 
@@ -293,7 +334,7 @@ export default function MasterBracketPage() {
 
   const getMatchupsByRound = (): Map<number, BracketMatchup[]> => {
     const grouped = new Map<number, BracketMatchup[]>();
-    matchups.forEach(matchup => {
+    matchups.forEach((matchup) => {
       const round = matchup.round;
       if (!grouped.has(round)) {
         grouped.set(round, []);
@@ -302,7 +343,6 @@ export default function MasterBracketPage() {
     });
     return grouped;
   };
-
 
   if (loading) {
     return <div>Chargement...</div>;
@@ -319,106 +359,164 @@ export default function MasterBracketPage() {
   const matchupsByRound = getMatchupsByRound();
 
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '24px' }}>
-      <h1 style={{ marginBottom: '8px', fontSize: '1.5rem' }}>Tableau maître – {activeSeason.name}</h1>
-      {error && <div style={{ color: '#DC2626', marginBottom: '12px' }}>Error: {error}</div>}
+    <div style={{ maxWidth: "900px", margin: "0 auto", padding: "24px" }}>
+      <h1 style={{ marginBottom: "8px", fontSize: "1.5rem" }}>
+        Tableau maître – {activeSeason.name}
+      </h1>
+      {error && (
+        <div style={{ color: "#DC2626", marginBottom: "12px" }}>
+          Error: {error}
+        </div>
+      )}
 
-      {canEdit && (
+      {canEdit && !viewerIsRestricted && (
         <RapidEntryPanel
           matchups={matchups}
           songs={songs}
           masterResults={masterResults}
           onBatchUpdate={handleBatchMasterUpdate}
-          getValidOptionsForMatchup={(matchup) => getValidMasterOptionsForMatchup(matchup, matchups, masterResults)}
+          getValidOptionsForMatchup={(matchup) =>
+            getValidMasterOptionsForMatchup(matchup, matchups, masterResults)
+          }
         />
       )}
 
       {Array.from(matchupsByRound.entries())
         .sort(([a], [b]) => a - b)
+        .filter(([round]) => !viewerIsRestricted || round === 1)
         .map(([round, roundMatchups]) => {
           // Filter out incomplete matchups for rounds > 1
-          const readyMatchups = round === 1 
-            ? roundMatchups 
-            : roundMatchups.filter(isMatchupReady);
+          const readyMatchups =
+            round === 1 ? roundMatchups : roundMatchups.filter(isMatchupReady);
+          const visibleMatchups = viewerIsRestricted
+            ? readyMatchups.filter((m) => m.matchup_number <= 8)
+            : readyMatchups;
 
           return (
-            <div key={round} style={{ marginBottom: '24px' }}>
-              <h2 style={{ marginBottom: '12px', fontSize: '1.15rem' }}>Tour {round}</h2>
-              {readyMatchups.map(matchup => {
-                const validOptions = getValidMasterOptionsForMatchup(matchup, matchups, masterResults);
-                const masterResult = masterResults.find(r => r.bracket_matchup_id === matchup.id);
-                const currentSongId = masterResult?.winner_song_id || '';
-                const currentSong = songs.find(s => s.id === currentSongId);
+            <div key={round} style={{ marginBottom: "24px" }}>
+              <h2 style={{ marginBottom: "12px", fontSize: "1.15rem" }}>
+                Tour {round}
+              </h2>
+              {visibleMatchups.map((matchup) => {
+                const validOptions = getValidMasterOptionsForMatchup(
+                  matchup,
+                  matchups,
+                  masterResults,
+                );
+                const masterResult = masterResults.find(
+                  (r) => r.bracket_matchup_id === matchup.id,
+                );
+                const currentSongId = masterResult?.winner_song_id || "";
+                const currentSong = songs.find((s) => s.id === currentSongId);
 
-                const song1 = matchup.song1_id ? songs.find(s => s.id === matchup.song1_id) ?? null : null;
-                const song2 = matchup.song2_id ? songs.find(s => s.id === matchup.song2_id) ?? null : null;
+                const song1 = matchup.song1_id
+                  ? (songs.find((s) => s.id === matchup.song1_id) ?? null)
+                  : null;
+                const song2 = matchup.song2_id
+                  ? (songs.find((s) => s.id === matchup.song2_id) ?? null)
+                  : null;
 
                 const song1Id = matchup.song1_id ?? null;
                 const song2Id = matchup.song2_id ?? null;
                 const rawWinnerId = masterResult?.winner_song_id ?? null;
-                const winnerId = rawWinnerId && (rawWinnerId === song1Id || rawWinnerId === song2Id) ? rawWinnerId : null;
-                const loserId = winnerId && song1Id && song2Id ? (winnerId === song1Id ? song2Id : song1Id) : null;
+                const winnerId =
+                  rawWinnerId &&
+                  (rawWinnerId === song1Id || rawWinnerId === song2Id)
+                    ? rawWinnerId
+                    : null;
+                const loserId =
+                  winnerId && song1Id && song2Id
+                    ? winnerId === song1Id
+                      ? song2Id
+                      : song1Id
+                    : null;
 
-                const renderSongLine = (song: Song | null, isWinner: boolean, isLoser: boolean) => {
-                  const label = song ? `« ${song.title} » – ${song.artist}` : '';
+                const renderSongLine = (
+                  song: Song | null,
+                  isWinner: boolean,
+                  isLoser: boolean,
+                ) => {
+                  const label = song
+                    ? `« ${song.title} » – ${song.artist}`
+                    : "";
                   return (
                     <div
                       style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: '12px',
-                        padding: isWinner ? '18px 14px' : '10px 12px',
-                        minHeight: isWinner ? '84px' : '44px',
-                        borderRadius: '14px',
-                        border: isWinner ? '2px solid #7C3AED' : '1px solid #E5E7EB',
-                        backgroundColor: isWinner ? '#F5F3FF' : isLoser ? '#E5E7EB' : '#F9FAFB',
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "12px",
+                        padding: isWinner ? "18px 14px" : "10px 12px",
+                        minHeight: isWinner ? "84px" : "44px",
+                        borderRadius: "14px",
+                        border: isWinner
+                          ? "2px solid #7C3AED"
+                          : "1px solid #E5E7EB",
+                        backgroundColor: isWinner
+                          ? "#F5F3FF"
+                          : isLoser
+                            ? "#E5E7EB"
+                            : "#F9FAFB",
                         opacity: isLoser ? 0.55 : 1,
-                        filter: isLoser ? 'grayscale(35%)' : 'none',
-                        transform: isWinner ? 'scale(1.02)' : 'scale(1)',
-                        transition: 'transform 120ms ease, opacity 200ms ease, background-color 200ms ease'
+                        filter: isLoser ? "grayscale(35%)" : "none",
+                        transform: isWinner ? "scale(1.02)" : "scale(1)",
+                        transition:
+                          "transform 120ms ease, opacity 200ms ease, background-color 200ms ease",
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "10px",
+                          minWidth: 0,
+                        }}
+                      >
                         {isWinner && <span aria-hidden="true">🏆</span>}
-                        <span style={{
-                          fontSize: isWinner ? '15px' : '14px',
-                          fontWeight: isWinner ? 700 : 500,
-                          color: isLoser ? '#374151' : '#111827',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}>
+                        <span
+                          style={{
+                            fontSize: isWinner ? "15px" : "14px",
+                            fontWeight: isWinner ? 700 : 500,
+                            color: isLoser ? "#374151" : "#111827",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
                           {label}
                         </span>
                       </div>
 
                       {isWinner && (
-                        <span style={{
-                          fontSize: '12px',
-                          fontWeight: 800,
-                          letterSpacing: '0.6px',
-                          color: '#6D28D9',
-                          backgroundColor: '#EDE9FE',
-                          padding: '4px 8px',
-                          borderRadius: '9999px',
-                          whiteSpace: 'nowrap'
-                        }}>
+                        <span
+                          style={{
+                            fontSize: "12px",
+                            fontWeight: 800,
+                            letterSpacing: "0.6px",
+                            color: "#6D28D9",
+                            backgroundColor: "#EDE9FE",
+                            padding: "4px 8px",
+                            borderRadius: "9999px",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
                           VAINQUEUR
                         </span>
                       )}
 
                       {isLoser && (
-                        <span style={{
-                          fontSize: '12px',
-                          fontWeight: 800,
-                          letterSpacing: '0.6px',
-                          color: '#B91C1C',
-                          backgroundColor: '#FEE2E2',
-                          padding: '4px 8px',
-                          borderRadius: '9999px',
-                          whiteSpace: 'nowrap'
-                        }}>
+                        <span
+                          style={{
+                            fontSize: "12px",
+                            fontWeight: 800,
+                            letterSpacing: "0.6px",
+                            color: "#B91C1C",
+                            backgroundColor: "#FEE2E2",
+                            padding: "4px 8px",
+                            borderRadius: "9999px",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
                           ÉLIMINÉE
                         </span>
                       )}
@@ -430,49 +528,68 @@ export default function MasterBracketPage() {
                   <div
                     key={matchup.id}
                     style={{
-                      marginBottom: '14px',
-                      padding: '14px',
-                      border: '1px solid #E5E7EB',
-                      borderRadius: '16px',
-                      backgroundColor: '#FFFFFF',
-                      boxShadow: '0 6px 20px rgba(0,0,0,0.06)'
+                      marginBottom: "14px",
+                      padding: "14px",
+                      border: "1px solid #E5E7EB",
+                      borderRadius: "16px",
+                      backgroundColor: "#FFFFFF",
+                      boxShadow: "0 6px 20px rgba(0,0,0,0.06)",
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10px' }}>
-                      <div style={{ fontWeight: 800, color: '#111827' }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "baseline",
+                        marginBottom: "10px",
+                      }}
+                    >
+                      <div style={{ fontWeight: 800, color: "#111827" }}>
                         Match {matchup.matchup_number}
                       </div>
                       {!winnerId && (
-                        <span style={{
-                          fontSize: '12px',
-                          fontWeight: 700,
-                          color: '#6B7280',
-                          backgroundColor: '#F3F4F6',
-                          padding: '4px 8px',
-                          borderRadius: '9999px'
-                        }}>
+                        <span
+                          style={{
+                            fontSize: "12px",
+                            fontWeight: 700,
+                            color: "#6B7280",
+                            backgroundColor: "#F3F4F6",
+                            padding: "4px 8px",
+                            borderRadius: "9999px",
+                          }}
+                        >
                           En attente
                         </span>
                       )}
                     </div>
 
-                    {canEdit ? (
+                    {canEdit && !viewerIsRestricted ? (
                       <div>
-                        <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                          <span style={{ fontSize: '13px', color: '#6B7280' }}>Choisir le gagnant</span>
+                        <label
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "6px",
+                          }}
+                        >
+                          <span style={{ fontSize: "13px", color: "#6B7280" }}>
+                            Choisir le gagnant
+                          </span>
                           <select
-                            value={currentSongId || ''}
-                            onChange={(e) => handleMasterSelection(matchup.id, e.target.value)}
+                            value={currentSongId || ""}
+                            onChange={(e) =>
+                              handleMasterSelection(matchup.id, e.target.value)
+                            }
                             disabled={saving || validOptions.length === 0}
                             style={{
-                              padding: '10px 12px',
-                              borderRadius: '10px',
-                              border: '1px solid #D1D5DB',
-                              backgroundColor: '#FFFFFF'
+                              padding: "10px 12px",
+                              borderRadius: "10px",
+                              border: "1px solid #D1D5DB",
+                              backgroundColor: "#FFFFFF",
                             }}
                           >
                             <option value="">-- Select --</option>
-                            {validOptions.map(songId => (
+                            {validOptions.map((songId) => (
                               <option key={songId} value={songId}>
                                 {getSongLabel(songId)}
                               </option>
@@ -480,11 +597,21 @@ export default function MasterBracketPage() {
                           </select>
                         </label>
 
-                        {masterResult && currentSong && (
-                          <div style={{ marginTop: '10px', fontSize: '14px' }}>
-                            <span style={{ marginRight: '6px', opacity: 0.9 }} title="Vainqueur">🏆</span>
-                            Vainqueur : {currentSong.youtube_url ? (
-                              <a href={currentSong.youtube_url} target="_blank" rel="noopener noreferrer">
+                        {viewerCanSeeWinners && masterResult && currentSong && (
+                          <div style={{ marginTop: "10px", fontSize: "14px" }}>
+                            <span
+                              style={{ marginRight: "6px", opacity: 0.9 }}
+                              title="Vainqueur"
+                            >
+                              🏆
+                            </span>
+                            Vainqueur :{" "}
+                            {currentSong.youtube_url ? (
+                              <a
+                                href={currentSong.youtube_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
                                 {getSongLabel(currentSongId)}
                               </a>
                             ) : (
@@ -494,9 +621,23 @@ export default function MasterBracketPage() {
                         )}
                       </div>
                     ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        {renderSongLine(song1, winnerId === song1Id, loserId === song1Id)}
-                        {renderSongLine(song2, winnerId === song2Id, loserId === song2Id)}
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "10px",
+                        }}
+                      >
+                        {renderSongLine(
+                          song1,
+                          viewerCanSeeWinners && winnerId === song1Id,
+                          viewerCanSeeWinners && loserId === song1Id,
+                        )}
+                        {renderSongLine(
+                          song2,
+                          viewerCanSeeWinners && winnerId === song2Id,
+                          viewerCanSeeWinners && loserId === song2Id,
+                        )}
                       </div>
                     )}
                   </div>
@@ -505,6 +646,35 @@ export default function MasterBracketPage() {
             </div>
           );
         })}
+
+      {viewerIsRestricted && (
+        <div
+          style={{
+            textAlign: "center",
+            marginTop: "24px",
+            fontSize: "13px",
+            color: "#6B7280",
+          }}
+        >
+          <p style={{ margin: "0 0 10px 0" }}>
+            Are you an educator? Sign up and log in to view the winners.
+          </p>
+          <Link
+            to="/login"
+            style={{
+              display: "inline-block",
+              padding: "8px 16px",
+              fontSize: "13px",
+              color: "#6B7280",
+              border: "1px solid #D1D5DB",
+              borderRadius: "6px",
+              textDecoration: "none",
+            }}
+          >
+            Log in
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

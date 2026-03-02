@@ -56,6 +56,7 @@ export default function Layout() {
     navigate("/login");
   };
 
+  const isStudent = Boolean(studentSession);
   const isLoggedIn = Boolean(user || studentSession);
   const headerInner = { maxWidth: 1100, margin: "0 auto" as const, padding: "8px 24px 16px" };
 
@@ -98,14 +99,16 @@ export default function Layout() {
                     Mon tableau
                   </Link>
                 )}
-                {isTeacher === true && (
+                {isTeacher === true && !isStudent && (
                   <Link to="/teacher-dashboard" onClick={() => setMenuOpen(false)}>
                     Tableau de bord
                   </Link>
                 )}
-                <Link to="/master-bracket" onClick={() => setMenuOpen(false)}>
-                  Tableau maître
-                </Link>
+                {!isStudent && (
+                  <Link to="/master-bracket" onClick={() => setMenuOpen(false)}>
+                    Tableau maître
+                  </Link>
+                )}
                 <Link to="/video-library" onClick={() => setMenuOpen(false)}>
                   Vidéos
                 </Link>
@@ -152,14 +155,16 @@ export default function Layout() {
                 Mon tableau
               </Link>
             )}
-            {isTeacher === true && (
+            {isTeacher === true && !isStudent && (
               <Link to="/teacher-dashboard" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "10px 12px" }}>
                 Tableau de bord
               </Link>
             )}
-            <Link to="/master-bracket" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "10px 12px" }}>
-              Tableau maître
-            </Link>
+            {!isStudent && (
+              <Link to="/master-bracket" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "10px 12px" }}>
+                Tableau maître
+              </Link>
+            )}
             <Link to="/video-library" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "10px 12px" }}>
               Vidéos
             </Link>

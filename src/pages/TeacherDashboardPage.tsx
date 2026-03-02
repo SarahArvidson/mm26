@@ -33,7 +33,7 @@ interface Class {
 }
 
 export default function TeacherDashboardPage() {
-  const { user } = useAuth();
+  const { user, studentSession } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -106,6 +106,12 @@ export default function TeacherDashboardPage() {
   };
 
   useEffect(() => {
+    if (studentSession) {
+      setLoading(false);
+      navigate("/student-bracket", { replace: true });
+      return;
+    }
+
     if (!user) {
       setLoading(false);
       navigate("/login", { replace: true });
@@ -136,7 +142,7 @@ export default function TeacherDashboardPage() {
     };
 
     checkTeacherProfile();
-  }, [user, navigate]);
+  }, [user, studentSession, navigate]);
 
   useEffect(() => {
     if (selectedClassId && activeSeason) {
