@@ -37,8 +37,6 @@ export default function Layout() {
     navigate("/login");
   };
 
-  const showNav = menuOpen || isWideScreen;
-
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px" }}>
       <header
@@ -47,15 +45,11 @@ export default function Layout() {
           alignItems: "center",
           justifyContent: "space-between",
           gap: "12px",
-          flexWrap: "wrap",
           padding: "8px 0 16px",
           borderBottom: "1px solid #E5E7EB",
         }}
       >
-        {!isWideScreen && (
-          <button onClick={() => setMenuOpen(!menuOpen)}>☰</button>
-        )}
-        {showNav && (
+        {isWideScreen && (
           <nav
             style={{
               display: "flex",
@@ -98,7 +92,69 @@ export default function Layout() {
             )}
           </nav>
         )}
+        {!isWideScreen && (
+          <button onClick={() => setMenuOpen(!menuOpen)}>☰</button>
+        )}
       </header>
+      {!isWideScreen && menuOpen && (
+        <div
+          style={{
+            marginTop: "12px",
+            border: "1px solid #E5E7EB",
+            borderRadius: "12px",
+            padding: "10px",
+            backgroundColor: "#FFFFFF",
+          }}
+        >
+          <nav style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <Link to="/accueil" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "10px 12px" }}>
+              Accueil
+            </Link>
+            <Link to="/login" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "10px 12px" }}>
+              Connexion
+            </Link>
+            {studentSession && (
+              <Link to="/student-bracket" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "10px 12px" }}>
+                Mon tableau
+              </Link>
+            )}
+            {isTeacher === true && (
+              <Link to="/teacher-dashboard" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "10px 12px" }}>
+                Tableau de bord
+              </Link>
+            )}
+            <Link to="/master-bracket" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "10px 12px" }}>
+              Tableau maître
+            </Link>
+            <Link to="/video-library" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "10px 12px" }}>
+              Vidéos
+            </Link>
+            <Link to="/instructions" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "10px 12px" }}>
+              Instructions
+            </Link>
+            <Link to="/settings" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "10px 12px" }}>
+              Paramètres
+            </Link>
+            {(user || studentSession) && (
+              <button
+                type="button"
+                onClick={handleLogout}
+                style={{
+                  background: "none",
+                  border: "none",
+                  textAlign: "left",
+                  font: "inherit",
+                  padding: "10px 12px",
+                  cursor: "pointer",
+                  width: "100%",
+                }}
+              >
+                Déconnexion
+              </button>
+            )}
+          </nav>
+        </div>
+      )}
       <main style={{ padding: "24px 0", minHeight: "60vh" }}>
         <Outlet />
       </main>
