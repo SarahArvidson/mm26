@@ -53,7 +53,13 @@ const FAQ_ITEMS: Array<{ question: string; answer: string }> = [
   {
     question: "What other projects are you working on?",
     answer:
-      "I have been interested in computers and coding for a very long time. When I left my teaching job last year, I wanted to start a small business and earn some software engineering skills. I'm not sure I want to keep the small business, but I am loving coding, and the full-stack software engineer course that I have been working through actually led me to creating Tableaumanie. I've also created some fun little personal web apps, like a habit tracker that my husband and I use to complete 'quests' and earn 'rewards.' For example, we recently stayed well below our grocery store budget, which was a quest. The reward was a new board game we been wanting. I have also built a couple of date night generators and automated tech stacks for my small business clients. If you have an idea for something that I might like to try building, let me know in the feedback!",
+      "I have been interested in computers and coding for a very long time. When I left my teaching job last year, I wanted to start a small business and earn some software engineering skills. I am loving coding, and the full-stack software engineer course that I have been working through actually led me to creating Tableaumanie. I've also created some fun little personal web apps, like a habit tracker that my husband and I use to complete 'quests' and earn 'rewards.' We recently stayed well below our monthly grocery budget, which was a quest. The reward was a new board game we had been eyeing. I have also built a couple of date night generators and automated tech stacks for my small business clients. If you have an idea for something that I might like to try building, let me know in the feedback!",
+  },
+  {
+    question:
+      "What can't I just create a bracket on my own without joining a class?",
+    answer:
+      "The teachers who generously spend their time and devote their energy to running Manie Musicale work hard to ensure that students don't get access to spoilers before voting closes. With Tableaumanie, I tried to capture that same spirit. Students will not know what their rank is in their class until teachers mark that they are finished collecting votes and toggle student rankings to update. If I allowed anyone to create a bracket and see how many points they're earning as the competition progresses, they could screenshot their personal results and spoil the surprise for others. That's just not the vibe I'm seeking to cultivate, friends.",
   },
 ];
 
@@ -260,8 +266,8 @@ export default function InstructionsPage() {
     >
       <h1 style={{ marginBottom: "8px", fontSize: "1.5rem" }}>Information</h1>
       <p style={{ marginBottom: "24px", fontSize: "15px", color: "#4B5563" }}>
-        Hi! Thanks for visiting Tableaumanie. I created Tableaumanie as a tool
-        to be used by students and educators participating in Manie Musicale.
+        Hi! Thanks for visiting Tableaumanie, a tool created specifically for
+        students and educators participating in Manie Musicale.
       </p>
       <p style={{ marginBottom: "24px", fontSize: "15px", color: "#4B5563" }}>
         I hope you enjoy it.

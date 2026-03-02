@@ -21,6 +21,39 @@ body {
   background: linear-gradient(to bottom, #f9fafb 0%, #f3f4f6 100%);
 }
 
+html {
+  font-size: 16px;
+}
+
+body {
+  color: #111827;
+  line-height: 1.55;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+p {
+  line-height: 1.6;
+  margin: 0 0 12px 0;
+}
+
+details p {
+  margin-bottom: 12px;
+}
+
+li {
+  line-height: 1.55;
+}
+
+label {
+  line-height: 1.4;
+}
+
+small {
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
 img,
 video {
   max-width: 100%;
