@@ -477,7 +477,13 @@ export default function TeacherDashboardPage() {
         </button>
         {isOpen && (
           <div
-            style={{ padding: "0 18px 18px", borderTop: "1px solid #E5E7EB" }}
+            style={{
+              padding: "22px 22px 22px",
+              borderTop: "1px solid #E5E7EB",
+              display: "flex",
+              flexDirection: "column",
+              gap: "20px",
+            }}
           >
             {content}
           </div>
@@ -512,13 +518,12 @@ export default function TeacherDashboardPage() {
                 display: "flex",
                 gap: "24px",
                 flexWrap: "wrap",
-                marginBottom: "16px",
               }}
             >
               {/* Select Class Card */}
               <div
                 style={{
-                  padding: "20px",
+                  padding: "22px",
                   border: "1px solid #E5E7EB",
                   borderRadius: "8px",
                   backgroundColor: "#FFFFFF",
@@ -608,7 +613,8 @@ export default function TeacherDashboardPage() {
                               style={{
                                 fontSize: "12px",
                                 color: "#15803D",
-                                marginTop: "4px",
+                              marginTop: "4px",
+                              lineHeight: 1.45,
                               }}
                             >
                               Partager ce code avec les élèves pour qu’ils
@@ -619,7 +625,7 @@ export default function TeacherDashboardPage() {
                             style={{
                               display: "flex",
                               justifyContent: "center",
-                              marginTop: "4px",
+                              marginTop: "12px",
                             }}
                           >
                             <button
@@ -709,7 +715,7 @@ export default function TeacherDashboardPage() {
               {/* Create New Class Card */}
               <div
                 style={{
-                  padding: "20px",
+                padding: "22px",
                   border: "1px solid #E5E7EB",
                   borderRadius: "8px",
                   backgroundColor: "#FFFFFF",
@@ -877,8 +883,7 @@ export default function TeacherDashboardPage() {
                 {/* Students in this Class */}
                 <div
                   style={{
-                    marginBottom: "32px",
-                    padding: "20px",
+                    padding: "22px",
                     border: "1px solid #E5E7EB",
                     borderRadius: "8px",
                     backgroundColor: "#FFFFFF",
@@ -1339,8 +1344,7 @@ export default function TeacherDashboardPage() {
               {matchups.length > 0 && (
                 <div
                   style={{
-                    marginBottom: "32px",
-                    padding: "20px",
+                    padding: "22px",
                     border: "1px solid #E5E7EB",
                     borderRadius: "8px",
                     backgroundColor: "#FFFFFF",
@@ -1362,6 +1366,7 @@ export default function TeacherDashboardPage() {
                       fontSize: "14px",
                       color: "#6B7280",
                       marginBottom: "16px",
+                      lineHeight: 1.45,
                     }}
                   >
                     Ouvre ou ferme un match pour les votes en direct. Les élèves
@@ -1650,8 +1655,7 @@ export default function TeacherDashboardPage() {
               {/* Section 1: Classement de la classe */}
               <div
                 style={{
-                  marginBottom: "32px",
-                  padding: "20px",
+                  padding: "22px",
                   border: "1px solid #E5E7EB",
                   borderRadius: "8px",
                   backgroundColor: "#FFFFFF",

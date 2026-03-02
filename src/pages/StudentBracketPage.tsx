@@ -1914,7 +1914,7 @@ export default function StudentBracketPage() {
                 fontWeight: "500",
               }}
             >
-              Tableau finalisé avec succès. Vos choix sont verrouillés.
+              Tableau finalisé avec succès. Tes choix sont verrouillés.
             </div>
           )}
         </>
