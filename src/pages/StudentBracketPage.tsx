@@ -84,6 +84,7 @@ export default function StudentBracketPage() {
   const [displayRank, setDisplayRank] = useState(0);
   const [isCounting, setIsCounting] = useState(false);
   const [isStatementActive, setIsStatementActive] = useState(false);
+  const [resultsReleased, setResultsReleased] = useState(false);
   const popTimerRef = useRef<number | null>(null);
   const countIntervalRef = useRef<number | null>(null);
   const animationFrameRef = useRef<number | null>(null);
@@ -356,6 +357,14 @@ export default function StudentBracketPage() {
           .eq("student_id", currentStudentId)
           .eq("season_id", active.id);
         setMyVotes((votesData || []) as StudentVote[]);
+
+        const { data: releaseData } = await supabase
+          .from("class_results_release")
+          .select("is_released")
+          .eq("class_id", classId)
+          .eq("season_id", active.id)
+          .maybeSingle();
+        setResultsReleased(!!releaseData?.is_released);
       }
     } catch (err: any) {
       setError(err.message || "Failed to load data");
@@ -825,6 +834,8 @@ export default function StudentBracketPage() {
                 }
               }}
             >
+              {resultsReleased ? (
+                <>
               {perfPop && (
                 <div
                   key={perfBurstKey}
@@ -1018,6 +1029,30 @@ export default function StudentBracketPage() {
                   })()}
                 </div>
               </div>
+                </>
+              ) : (
+                <>
+                  <h2
+                    style={{
+                      marginTop: 0,
+                      marginBottom: "24px",
+                      fontSize: "18px",
+                      color: "#111827",
+                    }}
+                  >
+                    🎯 Ta performance
+                  </h2>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: "14px",
+                      color: "#6B7280",
+                    }}
+                  >
+                    Résultats pas encore publiés par ton/ta prof.
+                  </p>
+                </>
+              )}
             </div>
           </div>
 
@@ -1321,6 +1356,8 @@ export default function StudentBracketPage() {
             >
               📊 Classement de la classe
             </h2>
+            {resultsReleased ? (
+            <div style={{ border: "none", background: "transparent", padding: 0 }}>
             <div
               style={{
                 border: "1px solid #E5E7EB",
@@ -1510,6 +1547,18 @@ export default function StudentBracketPage() {
                     })}
                 </div>
               </div>
+            )}
+            </div>
+            ) : (
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "14px",
+                  color: "#6B7280",
+                }}
+              >
+                Résultats pas encore publiés par ton/ta prof.
+              </p>
             )}
           </div>
         </>

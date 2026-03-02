@@ -90,6 +90,7 @@ export default function TeacherDashboardPage() {
   });
   const [showStudents, setShowStudents] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [resultsReleased, setResultsReleased] = useState(false);
 
   const loadFeedback = async () => {
     if (!user?.id) return;
@@ -394,10 +395,23 @@ export default function TeacherDashboardPage() {
         .eq("class_id", selectedClassId)
         .eq("season_id", activeSeason.id);
       if (!votesError) setClassVotes((votesData || []) as StudentVote[]);
+
+      await loadResultsRelease();
     } catch (err: any) {
       setError(err.message || "Failed to load leaderboard");
     }
   };
+
+  async function loadResultsRelease() {
+    if (!selectedClassId || !activeSeason) return;
+    const { data } = await supabase
+      .from("class_results_release")
+      .select("is_released")
+      .eq("class_id", selectedClassId)
+      .eq("season_id", activeSeason.id)
+      .maybeSingle();
+    setResultsReleased(!!data?.is_released);
+  }
 
   const openVoting = async (bracketMatchupId: UUID) => {
     if (!selectedClassId || !activeSeason || !user) return;
@@ -1686,7 +1700,39 @@ export default function TeacherDashboardPage() {
                     Classement de la classe
                   </h2>
                   <button
-                    onClick={loadClassLeaderboard}
+                    onClick={async () => {
+                      if (!resultsReleased) {
+                        if (
+                          !window.confirm(
+                            "Publier les résultats pour cette classe maintenant ?",
+                          )
+                        )
+                          return;
+                        if (!selectedClassId || !activeSeason || !user) return;
+                        const now = new Date().toISOString();
+                        const { error: upsertErr } = await supabase
+                          .from("class_results_release")
+                          .upsert(
+                            {
+                              season_id: activeSeason.id,
+                              class_id: selectedClassId,
+                              is_released: true,
+                              released_at: now,
+                              released_by: user.id,
+                              updated_at: now,
+                            },
+                            {
+                              onConflict: "season_id,class_id",
+                            },
+                          );
+                        if (upsertErr) {
+                          setError(upsertErr.message);
+                          return;
+                        }
+                        setResultsReleased(true);
+                      }
+                      await loadClassLeaderboard();
+                    }}
                     style={{
                       marginBottom: "16px",
                       padding: "8px 16px",
@@ -1700,7 +1746,9 @@ export default function TeacherDashboardPage() {
                       display: "inline-block",
                     }}
                   >
-                    Refresh Leaderboard
+                    {resultsReleased
+                      ? "Rafraîchir le classement"
+                      : "Publier les résultats"}
                   </button>
                   {leaderboard.length > 0 ? (
                     <div style={{ overflowX: "auto", textAlign: "left" }}>

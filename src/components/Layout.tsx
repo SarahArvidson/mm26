@@ -23,7 +23,7 @@ export default function Layout() {
   }, [user?.id]);
 
   const [isWideScreen, setIsWideScreen] = useState(
-    typeof window !== "undefined" && window.innerWidth >= 980
+    typeof window !== "undefined" && window.innerWidth >= 980,
   );
   const [forceMobileNav, setForceMobileNav] = useState(false);
   const desktopNavRef = useRef<HTMLElement | null>(null);
@@ -58,11 +58,17 @@ export default function Layout() {
 
   const isStudent = Boolean(studentSession);
   const isLoggedIn = Boolean(user || studentSession);
-  const headerInner = { maxWidth: 1100, margin: "0 auto" as const, padding: "8px 24px 16px" };
+  const headerInner = {
+    maxWidth: 1100,
+    margin: "0 auto" as const,
+    padding: "8px 24px 16px",
+  };
 
   return (
     <div>
-      <header style={{ borderBottom: "1px solid #E5E7EB", padding: "8px 0 16px" }}>
+      <header
+        style={{ borderBottom: "1px solid #E5E7EB", padding: "8px 0 16px" }}
+      >
         <div style={headerInner}>
           {showDesktopNav && (
             <div
@@ -95,12 +101,18 @@ export default function Layout() {
                   </Link>
                 )}
                 {studentSession && (
-                  <Link to="/student-bracket" onClick={() => setMenuOpen(false)}>
+                  <Link
+                    to="/student-bracket"
+                    onClick={() => setMenuOpen(false)}
+                  >
                     Mon tableau
                   </Link>
                 )}
                 {isTeacher === true && !isStudent && (
-                  <Link to="/teacher-dashboard" onClick={() => setMenuOpen(false)}>
+                  <Link
+                    to="/teacher-dashboard"
+                    onClick={() => setMenuOpen(false)}
+                  >
                     Tableau de bord
                   </Link>
                 )}
@@ -113,7 +125,7 @@ export default function Layout() {
                   Vidéos
                 </Link>
                 <Link to="/instructions" onClick={() => setMenuOpen(false)}>
-                  Instructions
+                  Informations
                 </Link>
                 <Link to="/settings" onClick={() => setMenuOpen(false)}>
                   Paramètres
@@ -142,36 +154,68 @@ export default function Layout() {
           }}
         >
           <nav style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            <Link to="/accueil" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "10px 12px" }}>
+            <Link
+              to="/accueil"
+              onClick={() => setMenuOpen(false)}
+              style={{ display: "block", padding: "10px 12px" }}
+            >
               Accueil
             </Link>
             {!isLoggedIn && (
-              <Link to="/login" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "10px 12px" }}>
+              <Link
+                to="/login"
+                onClick={() => setMenuOpen(false)}
+                style={{ display: "block", padding: "10px 12px" }}
+              >
                 Connexion
               </Link>
             )}
             {studentSession && (
-              <Link to="/student-bracket" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "10px 12px" }}>
+              <Link
+                to="/student-bracket"
+                onClick={() => setMenuOpen(false)}
+                style={{ display: "block", padding: "10px 12px" }}
+              >
                 Mon tableau
               </Link>
             )}
             {isTeacher === true && !isStudent && (
-              <Link to="/teacher-dashboard" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "10px 12px" }}>
+              <Link
+                to="/teacher-dashboard"
+                onClick={() => setMenuOpen(false)}
+                style={{ display: "block", padding: "10px 12px" }}
+              >
                 Tableau de bord
               </Link>
             )}
             {!isStudent && (
-              <Link to="/master-bracket" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "10px 12px" }}>
+              <Link
+                to="/master-bracket"
+                onClick={() => setMenuOpen(false)}
+                style={{ display: "block", padding: "10px 12px" }}
+              >
                 Tableau maître
               </Link>
             )}
-            <Link to="/video-library" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "10px 12px" }}>
+            <Link
+              to="/video-library"
+              onClick={() => setMenuOpen(false)}
+              style={{ display: "block", padding: "10px 12px" }}
+            >
               Vidéos
             </Link>
-            <Link to="/instructions" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "10px 12px" }}>
-              Instructions
+            <Link
+              to="/instructions"
+              onClick={() => setMenuOpen(false)}
+              style={{ display: "block", padding: "10px 12px" }}
+            >
+              Informations
             </Link>
-            <Link to="/settings" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "10px 12px" }}>
+            <Link
+              to="/settings"
+              onClick={() => setMenuOpen(false)}
+              style={{ display: "block", padding: "10px 12px" }}
+            >
               Paramètres
             </Link>
             {isLoggedIn && (
@@ -199,44 +243,44 @@ export default function Layout() {
           <Outlet />
         </main>
         <footer
-        style={{
-          marginTop: "2rem",
-          padding: "1.5rem 0",
-          textAlign: "center",
-          fontSize: "14px",
-          color: "#6B7280",
-          borderTop: "1px solid #E5E7EB",
-        }}
-      >
-        <p style={{ margin: "0 0 8px 0" }}>
-          © 2026 Sarah Arvidson. Tous droits réservés.
-        </p>
-        <p style={{ margin: 0 }}>
-          <a
-            href="https://github.com/SarahArvidson"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ marginRight: "12px" }}
-          >
-            GitHub
-          </a>
-          <a
-            href="https://maniemusicale.info"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ marginRight: "12px" }}
-          >
-            Maniemusicale.info
-          </a>
-          <a
-            href="https://www.venmo.com/u/Sarah-Arvidson"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Laisser un pourboire
-          </a>
-        </p>
-      </footer>
+          style={{
+            marginTop: "2rem",
+            padding: "1.5rem 0",
+            textAlign: "center",
+            fontSize: "14px",
+            color: "#6B7280",
+            borderTop: "1px solid #E5E7EB",
+          }}
+        >
+          <p style={{ margin: "0 0 8px 0" }}>
+            © 2026 Sarah Arvidson. Tous droits réservés.
+          </p>
+          <p style={{ margin: 0 }}>
+            <a
+              href="https://github.com/SarahArvidson"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ marginRight: "12px" }}
+            >
+              GitHub
+            </a>
+            <a
+              href="https://maniemusicale.info"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ marginRight: "12px" }}
+            >
+              Maniemusicale.info
+            </a>
+            <a
+              href="https://www.venmo.com/u/Sarah-Arvidson"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Laisser un pourboire
+            </a>
+          </p>
+        </footer>
       </div>
     </div>
   );

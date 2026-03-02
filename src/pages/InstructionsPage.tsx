@@ -26,6 +26,11 @@ const FAQ_ITEMS: Array<{ question: string; answer: string }> = [
       "Tableaumanie is the answer to my own middle and high school educator quandaries: how can I easily track my students' progress and rank in the Manie Musicale competition every March? Students would lose their paper brackets, or they'd write in pencil and change their minds. I would struggle to locate the reveal videos and to land on an easy way to collect votes from each of my classes. When online voting disappeared from the official Manie Musicale website, I was guttered! I left my full-time middle and high-school teaching job this year, and I knew that I wanted to participate in Manie Musicale with my college students. How was I going to keep track of all of their brackets and tally their points when I visit campus just once a week and one of my classes is fully online? Tableaumanie is the solution that I was able to build now that I have started learning to develop the edTech tools I always wanted to have.",
   },
   {
+    question: "Is Tableaumanie free to use?",
+    answer:
+      "Yeah, absolutely. To be honest, I wanted to give it as a gift to my former students. Making it free is the best way to make that happen. It's true that I took a major pay cut to change my life so I can do things like this, so I won't say know to gifting me a cup of coffee or something small like that. You'll find my Venmo linked in the footer.",
+  },
+  {
     question: "How do students use Tableaumanie?",
     answer: "(Write answer here)",
   },
@@ -35,15 +40,18 @@ const FAQ_ITEMS: Array<{ question: string; answer: string }> = [
   },
   {
     question: "How can I request changes or new features?",
-    answer: "(Write answer here)",
+    answer:
+      "There's a feedback area at the bottom of this page that you can use. If you're a teacher, and you want me to be able to respond to your request, use the feedback area in the teacher tools area of your dashboard.",
   },
   {
     question: "Will Tableaumanie be around next year?",
-    answer: "(Write answer here)",
+    answer:
+      "Definitely. I am a big fan of Manie Musicale. When I started this project, I made sure to build it in such a way that the data is stored by the year. This means that setting up for next year won't involve much more work than updating song titles and YouTube URLs. ",
   },
   {
     question: "What other projects are you working on?",
-    answer: "(Write answer here)",
+    answer:
+      "I have been interested in computers and coding for a very long time. When I left my teaching job last year, I wanted instead to shift to part-time work while I started a small business and improved my software engineering skills. I'm not sure I want to keep the small business, but I am loving coding, and the full-stack software engineer course that I have been working through actually led me to creating Tableaumanie. I've also created some fun little personal web apps, like a habit tracker that my husband and I use to complete 'quests' and earn 'rewards.' For example, we recently stayed well below our grocery store budget, which was a quest. The reward was a new board game we been wanting. I have also built a couple of date night generators and automated tech stacks for my small business clients. If you have an idea for something that I might like to try building, let me know in the feedback!",
   },
 ];
 
@@ -248,13 +256,17 @@ export default function InstructionsPage() {
         padding: "24px 20px",
       }}
     >
-      <h1 style={{ marginBottom: "8px", fontSize: "1.5rem" }}>Informations</h1>
+      <h1 style={{ marginBottom: "8px", fontSize: "1.5rem" }}>Information</h1>
       <p style={{ marginBottom: "24px", fontSize: "15px", color: "#4B5563" }}>
         Hi! Thanks for visiting Tableaumanie. I created Tableaumanie as a tool
         to be used by students and educators participating in Manie Musicale.
       </p>
       <p style={{ marginBottom: "24px", fontSize: "15px", color: "#4B5563" }}>
-        I hope you enjoy it. <br /> Sarah Arvidson
+        I hope you enjoy it.
+      </p>
+      <p style={{ marginBottom: "24px", fontSize: "15px", color: "#4B5563" }}>
+        Warmly,
+        <br /> Sarah Arvidson
       </p>
 
       {FAQ_ITEMS.map((item, i) => (
