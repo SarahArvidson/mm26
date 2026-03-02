@@ -23,10 +23,10 @@ export default function Layout() {
   }, [user?.id]);
 
   const [isWideScreen, setIsWideScreen] = useState(
-    typeof window !== "undefined" && window.innerWidth >= 768
+    typeof window !== "undefined" && window.innerWidth >= 980
   );
   useEffect(() => {
-    const onResize = () => setIsWideScreen(window.innerWidth >= 768);
+    const onResize = () => setIsWideScreen(window.innerWidth >= 980);
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
