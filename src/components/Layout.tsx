@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
@@ -25,11 +25,30 @@ export default function Layout() {
   const [isWideScreen, setIsWideScreen] = useState(
     typeof window !== "undefined" && window.innerWidth >= 980
   );
+  const [forceMobileNav, setForceMobileNav] = useState(false);
+  const desktopNavRef = useRef<HTMLElement | null>(null);
+
   useEffect(() => {
-    const onResize = () => setIsWideScreen(window.innerWidth >= 980);
+    const onResize = () => {
+      const wide = window.innerWidth >= 980;
+      setIsWideScreen(wide);
+      if (wide) setForceMobileNav(false);
+    };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
+
+  const showDesktopNav = isWideScreen && !forceMobileNav;
+  const showMobileNav = !isWideScreen || forceMobileNav;
+
+  useEffect(() => {
+    if (!showDesktopNav || !desktopNavRef.current) return;
+    const el = desktopNavRef.current;
+    const id = requestAnimationFrame(() => {
+      if (el.scrollWidth > el.clientWidth) setForceMobileNav(true);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [showDesktopNav, isWideScreen, isTeacher, studentSession, user]);
 
   const handleLogout = async () => {
     await signOut();
@@ -37,13 +56,14 @@ export default function Layout() {
     navigate("/login");
   };
 
+  const isLoggedIn = Boolean(user || studentSession);
   const headerInner = { maxWidth: 1100, margin: "0 auto" as const, padding: "8px 24px 16px" };
 
   return (
     <div>
       <header style={{ borderBottom: "1px solid #E5E7EB", padding: "8px 0 16px" }}>
         <div style={headerInner}>
-          {isWideScreen && (
+          {showDesktopNav && (
             <div
               style={{
                 display: "grid",
@@ -54,10 +74,13 @@ export default function Layout() {
             >
               <div />
               <nav
+                ref={desktopNavRef}
                 style={{
                   display: "flex",
                   flexDirection: "row",
-                  flexWrap: "wrap",
+                  flexWrap: "nowrap",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
                   gap: "16px",
                   alignItems: "center",
                 }}
@@ -65,9 +88,11 @@ export default function Layout() {
                 <Link to="/accueil" onClick={() => setMenuOpen(false)}>
                   Accueil
                 </Link>
-                <Link to="/login" onClick={() => setMenuOpen(false)}>
-                  Connexion
-                </Link>
+                {!isLoggedIn && (
+                  <Link to="/login" onClick={() => setMenuOpen(false)}>
+                    Connexion
+                  </Link>
+                )}
                 {studentSession && (
                   <Link to="/student-bracket" onClick={() => setMenuOpen(false)}>
                     Mon tableau
@@ -92,18 +117,18 @@ export default function Layout() {
                 </Link>
               </nav>
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                {(user || studentSession) && (
+                {isLoggedIn && (
                   <button onClick={handleLogout}>Déconnexion</button>
                 )}
               </div>
             </div>
           )}
-          {!isWideScreen && (
+          {showMobileNav && (
             <button onClick={() => setMenuOpen(!menuOpen)}>☰</button>
           )}
         </div>
       </header>
-      {!isWideScreen && menuOpen && (
+      {showMobileNav && menuOpen && (
         <div
           style={{
             marginTop: "12px",
@@ -117,9 +142,11 @@ export default function Layout() {
             <Link to="/accueil" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "10px 12px" }}>
               Accueil
             </Link>
-            <Link to="/login" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "10px 12px" }}>
-              Connexion
-            </Link>
+            {!isLoggedIn && (
+              <Link to="/login" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "10px 12px" }}>
+                Connexion
+              </Link>
+            )}
             {studentSession && (
               <Link to="/student-bracket" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "10px 12px" }}>
                 Mon tableau
@@ -142,7 +169,7 @@ export default function Layout() {
             <Link to="/settings" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "10px 12px" }}>
               Paramètres
             </Link>
-            {(user || studentSession) && (
+            {isLoggedIn && (
               <button
                 type="button"
                 onClick={handleLogout}
