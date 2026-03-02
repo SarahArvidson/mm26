@@ -79,15 +79,15 @@ export default function PrintBracketPage() {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div>Chargement...</div>;
   }
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return <div>Erreur : {error}</div>;
   }
 
   if (!season) {
-    return <div>Season not found</div>;
+    return <div>Saison introuvable</div>;
   }
 
   return (

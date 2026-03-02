@@ -30,8 +30,7 @@ export default function MasterBracketPage() {
   const canEdit = isAdmin === true;
 
   useEffect(() => {
-    if (!user) return;
-    checkAdmin();
+    if (user) checkAdmin();
     loadData();
   }, [user]);
 
@@ -43,8 +42,6 @@ export default function MasterBracketPage() {
   };
 
   const loadData = async () => {
-    if (!user) return;
-
     try {
       setLoading(true);
       setError(null);
@@ -59,7 +56,7 @@ export default function MasterBracketPage() {
 
       const active = resolveActiveSeason(seasonsData as Season[]);
       if (!active) {
-        setError('No active season found');
+        setError('Aucune saison active.');
         setLoading(false);
         return;
       }
@@ -308,22 +305,22 @@ export default function MasterBracketPage() {
 
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div>Chargement...</div>;
   }
 
   if (error && !activeSeason) {
-    return <div>Error: {error}</div>;
+    return <div>Erreur : {error}</div>;
   }
 
   if (!activeSeason) {
-    return <div>No active season</div>;
+    return <div>Aucune saison active</div>;
   }
 
   const matchupsByRound = getMatchupsByRound();
 
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto', padding: '24px' }}>
-      <h1 style={{ marginBottom: '8px', fontSize: '1.5rem' }}>Master Bracket - {activeSeason.name}</h1>
+      <h1 style={{ marginBottom: '8px', fontSize: '1.5rem' }}>Tableau maître – {activeSeason.name}</h1>
       {error && <div style={{ color: '#DC2626', marginBottom: '12px' }}>Error: {error}</div>}
 
       {canEdit && (
@@ -346,7 +343,7 @@ export default function MasterBracketPage() {
 
           return (
             <div key={round} style={{ marginBottom: '24px' }}>
-              <h2 style={{ marginBottom: '12px', fontSize: '1.15rem' }}>Round {round}</h2>
+              <h2 style={{ marginBottom: '12px', fontSize: '1.15rem' }}>Tour {round}</h2>
               {readyMatchups.map(matchup => {
                 const validOptions = getValidMasterOptionsForMatchup(matchup, matchups, masterResults);
                 const masterResult = masterResults.find(r => r.bracket_matchup_id === matchup.id);
@@ -443,7 +440,7 @@ export default function MasterBracketPage() {
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10px' }}>
                       <div style={{ fontWeight: 800, color: '#111827' }}>
-                        Matchup {matchup.matchup_number}
+                        Match {matchup.matchup_number}
                       </div>
                       {!winnerId && (
                         <span style={{
@@ -485,8 +482,8 @@ export default function MasterBracketPage() {
 
                         {masterResult && currentSong && (
                           <div style={{ marginTop: '10px', fontSize: '14px' }}>
-                            <span style={{ marginRight: '6px', opacity: 0.9 }} title="Winner">🏆</span>
-                            Winner: {currentSong.youtube_url ? (
+                            <span style={{ marginRight: '6px', opacity: 0.9 }} title="Vainqueur">🏆</span>
+                            Vainqueur : {currentSong.youtube_url ? (
                               <a href={currentSong.youtube_url} target="_blank" rel="noopener noreferrer">
                                 {getSongLabel(currentSongId)}
                               </a>

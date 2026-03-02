@@ -161,13 +161,13 @@ export default function LoginPage() {
     setLoading(true);
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError('Les mots de passe ne correspondent pas.');
       setLoading(false);
       return;
     }
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError('Le mot de passe doit contenir au moins 6 caractères.');
       setLoading(false);
       return;
     }
@@ -194,7 +194,7 @@ export default function LoginPage() {
       }
       setLoading(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create account');
+      setError(err instanceof Error ? err.message : 'Échec de la création du compte.');
       setLoading(false);
     }
   };
@@ -295,7 +295,7 @@ export default function LoginPage() {
       if (!res.ok) {
         const body = await res.text();
         console.error('resolve-student failed', res.status, body);
-        setError('Unknown student');
+        setError('Élève inconnu.');
         return;
       }
 
@@ -308,7 +308,7 @@ export default function LoginPage() {
       console.log('student matches:', matchCount);
 
       if (matchCount === 0) {
-        setError('Unknown student');
+        setError('Élève inconnu.');
         return;
       }
 
@@ -336,7 +336,7 @@ export default function LoginPage() {
 
       console.log('class picker shown: true');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(err instanceof Error ? err.message : 'Échec de connexion.');
     } finally {
       setLoading(false);
       studentLoginInFlight.current = false;
@@ -355,14 +355,14 @@ export default function LoginPage() {
       console.log('signInWithPassword result', { ok: !!authData.session, error: authError?.message });
 
       if (authError || !authData.session) {
-        setError('Incorrect password');
+        setError('Mot de passe incorrect.');
         return;
       }
 
       // Verify user.id matches student.id
       if (authData.session.user.id !== studentMatch.id) {
         await supabase.supabase.auth.signOut();
-        setError('Login mismatch, try again');
+        setError('Problème de connexion. Réessaie.');
         return;
       }
 
@@ -380,7 +380,7 @@ export default function LoginPage() {
         navigate('/student-bracket', { replace: true });
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(err instanceof Error ? err.message : 'Échec de connexion.');
     }
   };
 
@@ -392,7 +392,7 @@ export default function LoginPage() {
     setLoading(true);
 
     if (!isTeacher) {
-      setError('Password reset is not available for students. Please contact your teacher.');
+      setError('Réinitialisation du mot de passe réservée aux profs. Contacte ton professeur.');
       setLoading(false);
       return;
     }
@@ -401,7 +401,7 @@ export default function LoginPage() {
     if (error) {
       setError(error.message);
     } else {
-      setMessage('Password reset email sent. Please check your inbox.');
+      setMessage('Un email de réinitialisation a été envoyé. Vérifie ta boîte mail.');
       setShowForgotPassword(false);
     }
     setLoading(false);
@@ -410,12 +410,12 @@ export default function LoginPage() {
   if (showForgotPassword) {
     return (
       <div>
-        <h1>Reset Password</h1>
+        <h1>Réinitialiser le mot de passe</h1>
         <form onSubmit={handleForgotPassword}>
           {isTeacher ? (
             <div>
               <label>
-                Email:
+                Courriel :
                 <input
                   type="email"
                   value={email}
@@ -427,7 +427,7 @@ export default function LoginPage() {
           ) : (
             <div>
               <label>
-                Username:
+                Nom d'utilisateur :
                 <input
                   type="text"
                   value={username}
@@ -438,10 +438,10 @@ export default function LoginPage() {
             </div>
           )}
           <button type="submit" disabled={loading}>
-            {loading ? 'Sending...' : 'Send Reset Email'}
+            {loading ? 'Envoi...' : 'Envoyer l\'email de réinitialisation'}
           </button>
           <button type="button" onClick={() => setShowForgotPassword(false)}>
-            Back to Login
+            Retour à la connexion
           </button>
         </form>
         {error && (
@@ -478,14 +478,19 @@ export default function LoginPage() {
 
   return (
     <div style={{
-      maxWidth: '480px',
+      maxWidth: '520px',
       margin: '0 auto',
-      padding: '40px 20px',
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center'
+      padding: '48px 20px 40px'
     }}>
+      <div style={{
+        maxWidth: '520px',
+        margin: '0 auto',
+        padding: '24px',
+        borderRadius: '16px',
+        border: '1px solid #E5E7EB',
+        backgroundColor: '#FFFFFF',
+        boxShadow: '0 10px 30px rgba(0,0,0,0.06)'
+      }}>
       {/* Branding Header */}
       <div style={{ textAlign: 'center', marginBottom: '32px' }}>
         <h1 style={{
@@ -539,7 +544,7 @@ export default function LoginPage() {
             transition: 'all 0.2s ease'
           }}
         >
-          Teacher
+          Enseignant
         </button>
       </div>
       {isTeacher ? (
@@ -547,7 +552,7 @@ export default function LoginPage() {
           <form onSubmit={handleTeacherSignUp} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
-                Email:
+                Courriel :
               </label>
               <input
                 type="email"
@@ -568,7 +573,7 @@ export default function LoginPage() {
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
-                Password:
+                Mot de passe :
               </label>
               <input
                 type="password"
@@ -589,7 +594,7 @@ export default function LoginPage() {
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
-                Confirm Password:
+                Confirmer le mot de passe :
               </label>
               <input
                 type="password"
@@ -651,7 +656,7 @@ export default function LoginPage() {
                 transition: 'opacity 0.2s ease'
               }}
             >
-              {loading ? 'Creating...' : 'Créer mon compte'}
+              {loading ? 'Création...' : 'Créer mon compte'}
             </button>
             <div style={{ textAlign: 'center', marginTop: '8px' }}>
               <button
@@ -687,7 +692,7 @@ export default function LoginPage() {
           <form onSubmit={handleTeacherLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
-                Email:
+                Courriel :
               </label>
               <input
                 type="email"
@@ -708,7 +713,7 @@ export default function LoginPage() {
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
-                Password:
+                Mot de passe :
               </label>
               <input
                 type="password"
@@ -770,7 +775,7 @@ export default function LoginPage() {
                 transition: 'opacity 0.2s ease'
               }}
             >
-              {loading ? 'Logging in...' : 'Login'}
+              {loading ? 'Connexion...' : 'Connexion'}
             </button>
             <button 
               type="button" 
@@ -786,7 +791,7 @@ export default function LoginPage() {
                 textDecoration: 'underline'
               }}
             >
-              Forgot Password?
+              Mot de passe oublié ?
             </button>
             <div style={{ textAlign: 'center', marginTop: '8px' }}>
               <button
@@ -855,7 +860,7 @@ export default function LoginPage() {
                         e.currentTarget.style.backgroundColor = '#FFFFFF';
                       }}
                     >
-                      {match.class_name || 'Class'}
+                      {match.class_name || 'Classe'}
                     </button>
                   ))}
                   <button
@@ -1050,7 +1055,7 @@ export default function LoginPage() {
                             .maybeSingle();
 
                           if (classError || !classData) {
-                            setError('Invalid join code');
+                            setError('Code de classe invalide.');
                             setLoading(false);
                             return;
                           }
@@ -1080,13 +1085,13 @@ export default function LoginPage() {
                           });
 
                           if (functionError) {
-                            setError(functionError?.message || functionData?.error || 'Registration failed');
+                            setError(functionError?.message || functionData?.error || 'Inscription impossible.');
                             setLoading(false);
                             return;
                           }
 
                           if (!functionData?.auth_email) {
-                            setError('Registration succeeded but login email was not returned');
+                            setError('Inscription réussie mais l\'email de connexion n\'a pas été renvoyé.');
                             setLoading(false);
                             return;
                           }
@@ -1098,7 +1103,7 @@ export default function LoginPage() {
                           });
 
                           if (signInError) {
-                            setError(signInError.message || 'Registration succeeded but login failed. Please log in manually.');
+                            setError(signInError.message || 'Inscription réussie mais connexion impossible. Connecte-toi manuellement.');
                             setLoading(false);
                             return;
                           }
@@ -1107,7 +1112,7 @@ export default function LoginPage() {
                           navigate('/student-bracket');
                           setLoading(false);
                         } catch (err) {
-                          setError(err instanceof Error ? err.message : 'Registration failed');
+                          setError(err instanceof Error ? err.message : 'Inscription impossible.');
                         }
                         setLoading(false);
                       }}
@@ -1138,12 +1143,12 @@ export default function LoginPage() {
                   }
 
                   if (password !== confirmPassword) {
-                    setError('Passwords do not match');
+                    setError('Les mots de passe ne correspondent pas.');
                     return;
                   }
 
                   if (password.length < 6) {
-                    setError('Password must be at least 6 characters');
+                    setError('Le mot de passe doit contenir au moins 6 caractères.');
                     return;
                   }
 
@@ -1155,7 +1160,7 @@ export default function LoginPage() {
                     .maybeSingle();
 
                   if (classError || !classData) {
-                    setError('Invalid join code');
+                    setError('Code de classe invalide.');
                     return;
                   }
 
@@ -1184,7 +1189,7 @@ export default function LoginPage() {
                 }} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <div>
                     <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
-                      Class Join Code:
+                      Code de la classe :
                     </label>
                     <input
                       type="text"
@@ -1209,7 +1214,7 @@ export default function LoginPage() {
                       }}
                       required
                       autoComplete="off"
-                      placeholder="Enter class code"
+                      placeholder="Entre le code à 6 caractères"
                       style={{
                         width: '100%',
                         padding: '10px 12px',
@@ -1222,7 +1227,7 @@ export default function LoginPage() {
                   </div>
                   <div>
                     <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
-                      Full Name:
+                      Nom complet :
                     </label>
                     <input
                       type="text"
@@ -1230,7 +1235,7 @@ export default function LoginPage() {
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       required
-                      placeholder="Your full name"
+                      placeholder="Ton prénom et nom"
                       autoComplete="name"
                       style={{
                         width: '100%',
@@ -1244,13 +1249,13 @@ export default function LoginPage() {
                   </div>
                   <div>
                     <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
-                      Username:
+                      Nom d'utilisateur :
                     </label>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <input
                         type="text"
                         name="username"
-                        value={generatedUsername || 'Click Regenerate to generate username'}
+                        value={generatedUsername || 'Clique sur Générer pour obtenir un nom'}
                         readOnly
                         required
                         autoComplete="username"
@@ -1270,7 +1275,7 @@ export default function LoginPage() {
                         type="button"
                         onClick={async () => {
                           if (!joinCode) {
-                            setError('Please enter join code first');
+                            setError('Entre d\'abord le code de la classe.');
                             return;
                           }
                           setError(null);
@@ -1283,7 +1288,7 @@ export default function LoginPage() {
                             .maybeSingle();
 
                           if (classError || !classData) {
-                            setError('Invalid join code');
+                            setError('Code de classe invalide.');
                             return;
                           }
 
@@ -1305,21 +1310,21 @@ export default function LoginPage() {
                           whiteSpace: 'nowrap'
                         }}
                       >
-                        {generatedUsername ? 'Regenerate' : 'Generate'}
+                        {generatedUsername ? 'Régénérer' : 'Générer'}
                       </button>
                     </div>
                   </div>
                   <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
-                      Password:
+<label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+                      Mot de passe :
                     </label>
                     <input
-                      type="password"
-                      name="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      minLength={6}
+                        type="password"
+                        name="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        minLength={6}
                       autoComplete="new-password"
                       style={{
                         width: '100%',
@@ -1332,12 +1337,12 @@ export default function LoginPage() {
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
-                      Confirm Password:
+<label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+                      Confirmer le mot de passe :
                     </label>
                     <input
-                      type="password"
-                      name="confirmPassword"
+                        type="password"
+                        name="confirmPassword"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       required
@@ -1370,7 +1375,7 @@ export default function LoginPage() {
                       transition: 'opacity 0.2s ease'
                     }}
                   >
-                    {loading ? 'Creating...' : 'Créer mon compte'}
+                    {loading ? 'Création...' : 'Créer mon compte'}
                   </button>
                   <div style={{ textAlign: 'center', marginTop: '8px' }}>
                     <button
@@ -1411,6 +1416,7 @@ export default function LoginPage() {
           )}
         </>
       )}
+      </div>
     </div>
   );
 }

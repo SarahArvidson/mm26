@@ -6,37 +6,43 @@ export default function LandingPage() {
   return (
     <div
       style={{
-        maxWidth: "600px",
+        maxWidth: "560px",
         margin: "0 auto",
-        padding: "40px 20px",
+        padding: "48px 24px",
         textAlign: "center",
       }}
     >
+      <style>{`
+        @keyframes landingMarquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+      `}</style>
       <h1
         style={{
           fontSize: "2.5rem",
           fontWeight: 700,
           color: "#111827",
-          marginBottom: "24px",
+          marginBottom: "32px",
         }}
       >
         Tableaumanie
       </h1>
-      <p style={{ fontSize: "1.1rem", color: "#374151", marginBottom: "12px" }}>
-        Les élèves choisissent les gagnants de chaque match et suivent leur
-        classement.
-      </p>
-      <p style={{ fontSize: "1.1rem", color: "#374151", marginBottom: "32px" }}>
-        Les profs créent les classes, ouvrent les votes en direct et voient les
-        résultats.
-      </p>
+      <div
+        style={{ fontSize: "1.1rem", color: "#374151", marginBottom: "16px" }}
+      >
+        Un outil simple pour faire ton tableau et suivre la compétition
+      </div>
+      <p
+        style={{ fontSize: "1.1rem", color: "#374151", marginBottom: "40px" }}
+      ></p>
       <div
         style={{
           display: "flex",
           flexDirection: "column",
           gap: "12px",
           alignItems: "center",
-          marginBottom: "24px",
+          marginBottom: "40px",
         }}
       >
         <button
@@ -74,9 +80,41 @@ export default function LandingPage() {
           Connexion prof
         </button>
       </div>
-      <p style={{ fontSize: "0.9rem", color: "#6B7280" }}>
-        Un seul vote par match.
-      </p>
+      <div
+        style={{
+          height: "40px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          borderTop: "1px solid #E5E7EB",
+          borderBottom: "1px solid #E5E7EB",
+          overflow: "hidden",
+          color: "#6B7280",
+          fontSize: "12px",
+          marginTop: "8px",
+        }}
+      >
+        <div style={{ width: "100%", overflow: "hidden" }}>
+          <div
+            style={{
+              display: "inline-flex",
+              whiteSpace: "nowrap",
+              animation: "landingMarquee 20s linear infinite",
+            }}
+          >
+            <span style={{ paddingRight: "32px" }}>
+              Choisis le vainqueur • Vois ton rang • Regarde les clips • Vote en
+              direct • Choisis le vainqueur • Vois ton rang • Regarde les clips
+              • Vote en direct
+            </span>
+            <span style={{ paddingRight: "32px" }}>
+              Choisis le vainqueur • Vois ton rang • Regarde les clips • Vote en
+              direct • Choisis le vainqueur • Vois ton rang • Regarde les clips
+              • Vote en direct
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

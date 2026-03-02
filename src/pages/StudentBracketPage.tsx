@@ -209,7 +209,7 @@ export default function StudentBracketPage() {
 
       const active = resolveActiveSeason(seasonsData as Season[]);
       if (!active) {
-        setError("No active season found");
+        setError("Aucune saison active.");
         setLoading(false);
         return;
       }
@@ -486,15 +486,15 @@ export default function StudentBracketPage() {
   }, [openVotingGates, matchups, masterPicks]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div>Chargement...</div>;
   }
 
   if (error && !activeSeason) {
-    return <div>Error: {error}</div>;
+    return <div>Erreur : {error}</div>;
   }
 
   if (!activeSeason) {
-    return <div>No active season</div>;
+    return <div>Aucune saison active</div>;
   }
 
   const matchupsByRound = getMatchupsByRound();
@@ -603,7 +603,7 @@ export default function StudentBracketPage() {
       </p>
       {error && (
         <div style={{ color: "#DC2626", marginBottom: "16px" }}>
-          Error: {error}
+          Erreur : {error}
         </div>
       )}
 
@@ -1544,7 +1544,7 @@ export default function StudentBracketPage() {
                 color: "#92400E",
               }}
             >
-              This bracket has been finalized and cannot be edited.
+              Ce tableau a été finalisé et ne peut plus être modifié.
             </div>
           )}
 
@@ -1914,7 +1914,7 @@ export default function StudentBracketPage() {
                 fontWeight: "500",
               }}
             >
-              Bracket finalized successfully. Your picks are locked.
+              Tableau finalisé avec succès. Vos choix sont verrouillés.
             </div>
           )}
         </>

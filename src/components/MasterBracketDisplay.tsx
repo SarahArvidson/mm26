@@ -58,7 +58,7 @@ export default function MasterBracketDisplay({
 
           return (
             <div key={round}>
-              {showRoundHeaders && <h2>Round {round}</h2>}
+              {showRoundHeaders && <h2>Tour {round}</h2>}
               {readyMatchups.map(matchup => {
               const masterResult = masterResults.find(r => r.bracket_matchup_id === matchup.id);
               const winnerSongId = masterResult?.winner_song_id;
@@ -68,7 +68,7 @@ export default function MasterBracketDisplay({
               return (
                 <div key={matchup.id} style={{ marginBottom: '10px' }}>
                   <div>
-                    <strong>Matchup {matchup.matchup_number}:</strong>
+                    <strong>Match {matchup.matchup_number} :</strong>
                   </div>
                   <div>
                     {song1 && (

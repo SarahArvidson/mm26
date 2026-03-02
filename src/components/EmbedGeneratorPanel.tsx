@@ -34,18 +34,18 @@ export default function EmbedGeneratorPanel({ seasonId }: EmbedGeneratorPanelPro
 
   return (
     <div style={{ border: '1px solid #ccc', padding: '20px', margin: '20px 0' }}>
-      <h3>Embed Bracket</h3>
+      <h3>Intégrer le tableau</h3>
       
       <div style={{ marginBottom: '15px' }}>
         <label>
-          Size Preset:
+          Taille :
           <select
             value={sizePreset}
             onChange={(e) => setSizePreset(e.target.value as keyof typeof SIZE_PRESETS)}
           >
-            <option value="small">Small (600x800)</option>
-            <option value="medium">Medium (800x1000)</option>
-            <option value="large">Large (1000x1200)</option>
+            <option value="small">Petit (600×800)</option>
+            <option value="medium">Moyen (800×1000)</option>
+            <option value="large">Grand (1000×1200)</option>
           </select>
         </label>
       </div>
@@ -57,13 +57,13 @@ export default function EmbedGeneratorPanel({ seasonId }: EmbedGeneratorPanelPro
             checked={hideNav}
             onChange={(e) => setHideNav(e.target.checked)}
           />
-          Hide Navigation (nav=0)
+          Masquer la navigation (nav=0)
         </label>
       </div>
 
       <div style={{ marginBottom: '15px' }}>
         <label>
-          Iframe Code:
+          Code iframe :
           <textarea
             readOnly
             value={iframeCode}
@@ -73,7 +73,7 @@ export default function EmbedGeneratorPanel({ seasonId }: EmbedGeneratorPanelPro
       </div>
 
       <button onClick={handleCopy}>
-        {copied ? 'Copied!' : 'Copy to Clipboard'}
+        {copied ? 'Copié !' : 'Copier'}
       </button>
     </div>
   );
