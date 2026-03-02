@@ -1829,7 +1829,7 @@ export default function TeacherDashboardPage() {
                       fontWeight: "600",
                     }}
                   >
-                    Analytics
+                    Analyses
                   </h2>
 
                   {masterResults.length === 0 ? (
@@ -1920,7 +1920,7 @@ export default function TeacherDashboardPage() {
                               fontWeight: "600",
                             }}
                           >
-                            Class:{" "}
+                            Classe :{" "}
                             {classes.find((c) => c.id === selectedClassId)
                               ?.name || "Selected Class"}
                           </h3>
@@ -2047,7 +2047,7 @@ export default function TeacherDashboardPage() {
                     fontWeight: "600",
                   }}
                 >
-                  Export Data
+                  Exporter les données
                 </h3>
                 <div
                   style={{
@@ -2134,7 +2134,7 @@ export default function TeacherDashboardPage() {
                       fontSize: "16px",
                     }}
                   >
-                    Printable Resources
+                    Ressources imprimables
                   </h4>
                   <a
                     href="/manie-musicale-2026-bracket.pdf"

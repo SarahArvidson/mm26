@@ -43,54 +43,66 @@ export default function Layout() {
         style={{
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
+          justifyContent: "center",
           gap: "12px",
           padding: "8px 0 16px",
           borderBottom: "1px solid #E5E7EB",
         }}
       >
         {isWideScreen && (
-          <nav
+          <div
             style={{
-              display: "flex",
-              flexDirection: "row",
-              flexWrap: "wrap",
-              gap: "16px",
+              display: "grid",
+              gridTemplateColumns: "1fr auto 1fr",
               alignItems: "center",
+              width: "100%",
             }}
           >
-            <Link to="/accueil" onClick={() => setMenuOpen(false)}>
-              Accueil
-            </Link>
-            <Link to="/login" onClick={() => setMenuOpen(false)}>
-              Connexion
-            </Link>
-            {studentSession && (
-              <Link to="/student-bracket" onClick={() => setMenuOpen(false)}>
-                Mon tableau
+            <div />
+            <nav
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: "16px",
+                alignItems: "center",
+              }}
+            >
+              <Link to="/accueil" onClick={() => setMenuOpen(false)}>
+                Accueil
               </Link>
-            )}
-            {isTeacher === true && (
-              <Link to="/teacher-dashboard" onClick={() => setMenuOpen(false)}>
-                Tableau de bord
+              <Link to="/login" onClick={() => setMenuOpen(false)}>
+                Connexion
               </Link>
-            )}
-            <Link to="/master-bracket" onClick={() => setMenuOpen(false)}>
-              Tableau maître
-            </Link>
-            <Link to="/video-library" onClick={() => setMenuOpen(false)}>
-              Vidéos
-            </Link>
-            <Link to="/instructions" onClick={() => setMenuOpen(false)}>
-              Instructions
-            </Link>
-            <Link to="/settings" onClick={() => setMenuOpen(false)}>
-              Paramètres
-            </Link>
-            {(user || studentSession) && (
-              <button onClick={handleLogout}>Déconnexion</button>
-            )}
-          </nav>
+              {studentSession && (
+                <Link to="/student-bracket" onClick={() => setMenuOpen(false)}>
+                  Mon tableau
+                </Link>
+              )}
+              {isTeacher === true && (
+                <Link to="/teacher-dashboard" onClick={() => setMenuOpen(false)}>
+                  Tableau de bord
+                </Link>
+              )}
+              <Link to="/master-bracket" onClick={() => setMenuOpen(false)}>
+                Tableau maître
+              </Link>
+              <Link to="/video-library" onClick={() => setMenuOpen(false)}>
+                Vidéos
+              </Link>
+              <Link to="/instructions" onClick={() => setMenuOpen(false)}>
+                Instructions
+              </Link>
+              <Link to="/settings" onClick={() => setMenuOpen(false)}>
+                Paramètres
+              </Link>
+            </nav>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              {(user || studentSession) && (
+                <button onClick={handleLogout}>Déconnexion</button>
+              )}
+            </div>
+          </div>
         )}
         {!isWideScreen && (
           <button onClick={() => setMenuOpen(!menuOpen)}>☰</button>
