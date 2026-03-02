@@ -619,8 +619,8 @@ export default function TeacherDashboardPage() {
                               style={{
                                 fontSize: "12px",
                                 color: "#15803D",
-                              marginTop: "4px",
-                              lineHeight: 1.45,
+                                marginTop: "4px",
+                                lineHeight: 1.45,
                               }}
                             >
                               Partager ce code avec les élèves pour qu’ils
@@ -721,7 +721,7 @@ export default function TeacherDashboardPage() {
               {/* Create New Class Card */}
               <div
                 style={{
-                padding: "22px",
+                  padding: "22px",
                   border: "1px solid #E5E7EB",
                   borderRadius: "8px",
                   backgroundColor: "#FFFFFF",
@@ -2029,12 +2029,13 @@ export default function TeacherDashboardPage() {
         )}
         {renderPanel(
           "tools",
-          "Outils",
-          <>
-            {/* Section 3: Export Data */}
+          "Outils prof",
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+          >
+            {/* Export Data - unchanged */}
             <div
               style={{
-                marginBottom: "32px",
                 padding: "20px",
                 border: "1px solid #E5E7EB",
                 borderRadius: "8px",
@@ -2126,96 +2127,121 @@ export default function TeacherDashboardPage() {
                     Export All Classes Votes (CSV)
                   </button>
                 </div>
-
-                <div
-                  style={{
-                    height: "1px",
-                    backgroundColor: "#E5E7EB",
-                    margin: "20px 0",
-                  }}
-                />
-
-                <div>
-                  <h4
-                    style={{
-                      marginBottom: "12px",
-                      color: "#374151",
-                      fontWeight: 600,
-                      fontSize: "16px",
-                    }}
-                  >
-                    Ressources imprimables
-                  </h4>
-                  <a
-                    href="/manie-musicale-2026-bracket.pdf"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ textDecoration: "none" }}
-                  >
-                    <button
-                      style={{
-                        backgroundColor: "#FFFFFF",
-                        color: "#7C3AED",
-                        border: "1px solid #7C3AED",
-                        borderRadius: "6px",
-                        padding: "10px 16px",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        fontWeight: "500",
-                      }}
-                    >
-                      Ouvrir le tableau vierge (PDF)
-                    </button>
-                  </a>
-                </div>
               </div>
             </div>
 
-            {/* Section 4: Embed Generator */}
+            {/* Sub-card 1: Intégration (iframe) */}
             {activeSeason && (
               <div
                 style={{
-                  padding: "20px",
+                  padding: "18px",
                   border: "1px solid #E5E7EB",
-                  borderRadius: "8px",
-                  backgroundColor: "#F9FAFB",
+                  borderRadius: "12px",
+                  backgroundColor: "#FFFFFF",
                 }}
               >
-                <h3
+                <h4
                   style={{
-                    color: "#6B7280",
-                    marginTop: "0",
-                    marginBottom: "12px",
+                    marginBottom: "6px",
+                    color: "#374151",
+                    fontWeight: 600,
                     fontSize: "16px",
-                    fontWeight: "500",
                   }}
                 >
-                  Intégration iframe (optionnel)
-                </h3>
+                  Intégration (iframe)
+                </h4>
+                <p
+                  style={{
+                    marginBottom: "12px",
+                    fontSize: "14px",
+                    color: "#6B7280",
+                  }}
+                >
+                  Génère un lien ou un code à intégrer sur votre site ou ENT.
+                </p>
                 <EmbedGeneratorPanel seasonId={activeSeason.id} />
               </div>
             )}
-            {/* Commentaires pour le développeur */}
+
+            {/* Sub-card 2: Ressources imprimables */}
             <div
               style={{
-                marginTop: "16px",
-                padding: "20px",
+                padding: "18px",
                 border: "1px solid #E5E7EB",
-                borderRadius: "8px",
-                backgroundColor: "#F9FAFB",
+                borderRadius: "12px",
+                backgroundColor: "#FFFFFF",
               }}
             >
-              <h3
+              <h4
                 style={{
-                  color: "#6B7280",
-                  marginTop: 0,
-                  marginBottom: "12px",
+                  marginBottom: "6px",
+                  color: "#374151",
+                  fontWeight: 600,
                   fontSize: "16px",
-                  fontWeight: 500,
+                }}
+              >
+                Ressources imprimables
+              </h4>
+              <p
+                style={{
+                  marginBottom: "12px",
+                  fontSize: "14px",
+                  color: "#6B7280",
+                }}
+              >
+                Tableau papier à distribuer en classe.
+              </p>
+              <a
+                href="/manie-musicale-2026-bracket.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ textDecoration: "none" }}
+              >
+                <button
+                  style={{
+                    backgroundColor: "#FFFFFF",
+                    color: "#7C3AED",
+                    border: "1px solid #7C3AED",
+                    borderRadius: "6px",
+                    padding: "10px 16px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                  }}
+                >
+                  Ouvrir le tableau vierge (PDF)
+                </button>
+              </a>
+            </div>
+
+            {/* Sub-card 3: Commentaires pour Sarah */}
+            <div
+              style={{
+                padding: "18px",
+                border: "1px solid #E5E7EB",
+                borderRadius: "12px",
+                backgroundColor: "#FFFFFF",
+              }}
+            >
+              <h4
+                style={{
+                  marginBottom: "6px",
+                  color: "#374151",
+                  fontWeight: 600,
+                  fontSize: "16px",
                 }}
               >
                 Commentaires pour le développeur
-              </h3>
+              </h4>
+              <p
+                style={{
+                  marginBottom: "12px",
+                  fontSize: "14px",
+                  color: "#6B7280",
+                }}
+              >
+                Signaler un bug ou proposer une idée.
+              </p>
               <textarea
                 value={feedbackMessage}
                 onChange={(e) => setFeedbackMessage(e.target.value)}
@@ -2318,7 +2344,7 @@ export default function TeacherDashboardPage() {
                 </div>
               )}
             </div>
-          </>,
+          </div>,
         )}
       </div>
     </div>
