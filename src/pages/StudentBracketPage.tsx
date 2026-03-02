@@ -608,7 +608,7 @@ export default function StudentBracketPage() {
           marginBottom: "40px",
         }}
       >
-        Ton tableau et ta performance
+        Bonne chance !
       </p>
       {error && (
         <div style={{ color: "#DC2626", marginBottom: "16px" }}>
@@ -836,199 +836,202 @@ export default function StudentBracketPage() {
             >
               {resultsReleased ? (
                 <>
-              {perfPop && (
-                <div
-                  key={perfBurstKey}
-                  className="perf-burst"
-                  aria-hidden="true"
-                >
-                  <div className="perf-notes-layer">
-                    {["♪", "♫", "♬", "♪", "♫", "♬"].map((note, i) => {
-                      const colors = [
-                        "#7C3AED",
-                        "#10B981",
-                        "#3B82F6",
-                        "#EF4444",
-                        "#8B5CF6",
-                        "#22D3EE",
-                      ];
-                      const leftPositions = [18, 30, 42, 54, 66, 78];
-                      return (
-                        <span
-                          key={i}
-                          className="perf-note"
-                          style={
-                            {
-                              left: `${leftPositions[i]}%`,
-                              "--noteColor": colors[i % colors.length],
-                              "--driftX": `${((i % 3) - 1) * 8}px`,
-                              animationDelay: `${i * 70}ms`,
-                            } as React.CSSProperties
-                          }
-                        >
-                          {note}
-                        </span>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-              <div className="perf-content">
-                <h2
-                  style={{
-                    marginTop: 0,
-                    marginBottom: "24px",
-                    fontSize: "18px",
-                    color: "#111827",
-                  }}
-                >
-                  🎯 Ta performance
-                </h2>
-                <div style={{ marginBottom: "16px" }}>
-                  <div
-                    style={{
-                      fontSize: "48px",
-                      fontWeight: 700,
-                      color: "#111827",
-                    }}
-                  >
-                    {studentRank > 0
-                      ? `#${isCounting ? displayRank : studentRank}`
-                      : "—"}
-                  </div>
-                  {studentRank > 0 && (
+                  {perfPop && (
                     <div
-                      style={{
-                        marginTop: "12px",
-                        padding: "8px 12px",
-                        backgroundColor: "#F5F3FF",
-                        borderRadius: "8px",
-                        display: "inline-block",
-                      }}
+                      key={perfBurstKey}
+                      className="perf-burst"
+                      aria-hidden="true"
                     >
-                      <p
-                        style={{
-                          margin: 0,
-                          fontSize: "16px",
-                          fontWeight: "700",
-                          color: "#7C3AED",
-                          letterSpacing: "0.5px",
-                        }}
-                      >
-                        {tierLabel}
-                      </p>
+                      <div className="perf-notes-layer">
+                        {["♪", "♫", "♬", "♪", "♫", "♬"].map((note, i) => {
+                          const colors = [
+                            "#7C3AED",
+                            "#10B981",
+                            "#3B82F6",
+                            "#EF4444",
+                            "#8B5CF6",
+                            "#22D3EE",
+                          ];
+                          const leftPositions = [18, 30, 42, 54, 66, 78];
+                          return (
+                            <span
+                              key={i}
+                              className="perf-note"
+                              style={
+                                {
+                                  left: `${leftPositions[i]}%`,
+                                  "--noteColor": colors[i % colors.length],
+                                  "--driftX": `${((i % 3) - 1) * 8}px`,
+                                  animationDelay: `${i * 70}ms`,
+                                } as React.CSSProperties
+                              }
+                            >
+                              {note}
+                            </span>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
-                  {performanceMessages.length > 0 && (
-                    <>
-                      <p
+                  <div className="perf-content">
+                    <h2
+                      style={{
+                        marginTop: 0,
+                        marginBottom: "24px",
+                        fontSize: "18px",
+                        color: "#111827",
+                      }}
+                    >
+                      🎯 Ta performance
+                    </h2>
+                    <div style={{ marginBottom: "16px" }}>
+                      <div
                         style={{
-                          marginTop: "12px",
-                          marginBottom: "0px",
-                          fontWeight: isStatementActive ? 700 : 500,
-                          fontSize: "14px",
-                          color: isStatementActive ? "#2563EB" : "#6B7280",
-                          transform: isStatementActive
-                            ? "scale(1.04)"
-                            : "scale(1)",
-                          transition:
-                            "color 200ms ease, transform 200ms ease, font-weight 200ms ease",
-                          minHeight: "20px",
+                          fontSize: "48px",
+                          fontWeight: 700,
+                          color: "#111827",
                         }}
                       >
-                        {performanceMessages[messageIndex]}
-                      </p>
-                    </>
-                  )}
-                  {(() => {
-                    // Compute total points from per-round scores
-                    const computedTotalPoints = roundBreakdown.reduce(
-                      (sum, { score }) => sum + score,
-                      0,
-                    );
-                    return (
-                      <>
+                        {studentRank > 0
+                          ? `#${isCounting ? displayRank : studentRank}`
+                          : "—"}
+                      </div>
+                      {studentRank > 0 && (
                         <div
                           style={{
-                            fontSize: "20px",
-                            marginTop: "16px",
-                            color: "#111827",
+                            marginTop: "12px",
+                            padding: "8px 12px",
+                            backgroundColor: "#F5F3FF",
+                            borderRadius: "8px",
+                            display: "inline-block",
                           }}
                         >
-                          {computedTotalPoints} points
-                        </div>
-                        <div>
                           <p
                             style={{
-                              margin: "4px 0 8px 0",
-                              fontSize: "14px",
-                              color: "#6B7280",
+                              margin: 0,
+                              fontSize: "16px",
+                              fontWeight: "700",
+                              color: "#7C3AED",
+                              letterSpacing: "0.5px",
                             }}
                           >
-                            Par tour
+                            {tierLabel}
                           </p>
-                          {roundBreakdown.map(({ round, score }) => {
-                            const roundLabel =
-                              round === 1
-                                ? "1er tour"
-                                : round === 2
-                                  ? "2e tour"
-                                  : round === 3
-                                    ? "3e tour"
-                                    : "Championnat";
-                            return (
-                              <div key={round} style={{ marginBottom: "8px" }}>
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    marginBottom: "4px",
-                                  }}
-                                >
-                                  <span
-                                    style={{
-                                      fontSize: "12px",
-                                      color: "#374151",
-                                    }}
-                                  >
-                                    {roundLabel}
-                                  </span>
-                                  <span
-                                    style={{
-                                      fontSize: "12px",
-                                      fontWeight: "600",
-                                      color: "#111827",
-                                    }}
-                                  >
-                                    {score}
-                                  </span>
-                                </div>
-                                <div
-                                  style={{
-                                    height: "6px",
-                                    backgroundColor: "#E5E7EB",
-                                    borderRadius: "3px",
-                                    overflow: "hidden",
-                                  }}
-                                >
-                                  <div
-                                    style={{
-                                      height: "100%",
-                                      width: `${Math.min((score / Math.max(computedTotalPoints, 1)) * 100, 100)}%`,
-                                      backgroundColor: "#7C3AED",
-                                      transition: "width 300ms ease",
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            );
-                          })}
                         </div>
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
+                      )}
+                      {performanceMessages.length > 0 && (
+                        <>
+                          <p
+                            style={{
+                              marginTop: "12px",
+                              marginBottom: "0px",
+                              fontWeight: isStatementActive ? 700 : 500,
+                              fontSize: "14px",
+                              color: isStatementActive ? "#2563EB" : "#6B7280",
+                              transform: isStatementActive
+                                ? "scale(1.04)"
+                                : "scale(1)",
+                              transition:
+                                "color 200ms ease, transform 200ms ease, font-weight 200ms ease",
+                              minHeight: "20px",
+                            }}
+                          >
+                            {performanceMessages[messageIndex]}
+                          </p>
+                        </>
+                      )}
+                      {(() => {
+                        // Compute total points from per-round scores
+                        const computedTotalPoints = roundBreakdown.reduce(
+                          (sum, { score }) => sum + score,
+                          0,
+                        );
+                        return (
+                          <>
+                            <div
+                              style={{
+                                fontSize: "20px",
+                                marginTop: "16px",
+                                color: "#111827",
+                              }}
+                            >
+                              {computedTotalPoints} points
+                            </div>
+                            <div>
+                              <p
+                                style={{
+                                  margin: "4px 0 8px 0",
+                                  fontSize: "14px",
+                                  color: "#6B7280",
+                                }}
+                              >
+                                Par tour
+                              </p>
+                              {roundBreakdown.map(({ round, score }) => {
+                                const roundLabel =
+                                  round === 1
+                                    ? "1er tour"
+                                    : round === 2
+                                      ? "2e tour"
+                                      : round === 3
+                                        ? "3e tour"
+                                        : "Championnat";
+                                return (
+                                  <div
+                                    key={round}
+                                    style={{ marginBottom: "8px" }}
+                                  >
+                                    <div
+                                      style={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        marginBottom: "4px",
+                                      }}
+                                    >
+                                      <span
+                                        style={{
+                                          fontSize: "12px",
+                                          color: "#374151",
+                                        }}
+                                      >
+                                        {roundLabel}
+                                      </span>
+                                      <span
+                                        style={{
+                                          fontSize: "12px",
+                                          fontWeight: "600",
+                                          color: "#111827",
+                                        }}
+                                      >
+                                        {score}
+                                      </span>
+                                    </div>
+                                    <div
+                                      style={{
+                                        height: "6px",
+                                        backgroundColor: "#E5E7EB",
+                                        borderRadius: "3px",
+                                        overflow: "hidden",
+                                      }}
+                                    >
+                                      <div
+                                        style={{
+                                          height: "100%",
+                                          width: `${Math.min((score / Math.max(computedTotalPoints, 1)) * 100, 100)}%`,
+                                          backgroundColor: "#7C3AED",
+                                          transition: "width 300ms ease",
+                                        }}
+                                      />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
                 </>
               ) : (
                 <>
@@ -1357,198 +1360,206 @@ export default function StudentBracketPage() {
               📊 Classement de la classe
             </h2>
             {resultsReleased ? (
-            <div style={{ border: "none", background: "transparent", padding: 0 }}>
-            <div
-              style={{
-                border: "1px solid #E5E7EB",
-                borderRadius: "12px",
-                overflow: "hidden",
-                backgroundColor: "#FFFFFF",
-              }}
-            >
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr
-                    style={{
-                      backgroundColor: "#F9FAFB",
-                      borderBottom: "2px solid #E5E7EB",
-                    }}
-                  >
-                    <th
-                      style={{
-                        padding: "12px 16px",
-                        textAlign: "center",
-                        fontWeight: "600",
-                        color: "#374151",
-                        fontSize: "14px",
-                      }}
-                    >
-                      Rang
-                    </th>
-                    <th
-                      style={{
-                        padding: "12px 16px",
-                        textAlign: "center",
-                        fontWeight: "600",
-                        color: "#374151",
-                        fontSize: "14px",
-                      }}
-                    >
-                      Nom d'utilisateur
-                    </th>
-                    <th
-                      style={{
-                        padding: "12px 16px",
-                        textAlign: "center",
-                        fontWeight: "600",
-                        color: "#374151",
-                        fontSize: "14px",
-                      }}
-                    >
-                      Points
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {leaderboard.map((score, index) => {
-                    const isCurrentStudent =
-                      score.student_id === currentStudentId;
-                    const isTopThree = index < 3;
-                    return (
-                      <tr
-                        key={score.student_id}
-                        style={{
-                          backgroundColor: isCurrentStudent
-                            ? "#F5F3FF"
-                            : isTopThree
-                              ? "#F9FAFB"
-                              : "#FFFFFF",
-                          borderBottom:
-                            index < leaderboard.length - 1
-                              ? "1px solid #E5E7EB"
-                              : "none",
-                          fontWeight: isCurrentStudent ? "600" : "400",
-                        }}
-                      >
-                        <td
-                          style={{
-                            padding: "12px 16px",
-                            textAlign: "center",
-                            color: "#111827",
-                            fontSize: "14px",
-                          }}
-                        >
-                          {score.rank}
-                        </td>
-                        <td
-                          style={{
-                            padding: "12px 16px",
-                            textAlign: "center",
-                            color: "#111827",
-                            fontSize: "14px",
-                          }}
-                        >
-                          {score.student_name}
-                        </td>
-                        <td
-                          style={{
-                            padding: "12px 16px",
-                            textAlign: "center",
-                            color: "#111827",
-                            fontSize: "14px",
-                          }}
-                        >
-                          {score.total_score}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Class Accuracy by Round Section */}
-            {classRoundAccuracy.length > 0 && masterResults.length > 0 && (
-              <div style={{ marginTop: "48px" }}>
-                <h2
-                  style={{
-                    fontSize: "24px",
-                    marginBottom: "8px",
-                    color: "#111827",
-                    textAlign: "center",
-                  }}
-                >
-                  📊 Réussite de la classe
-                </h2>
-                <p
-                  style={{
-                    fontSize: "14px",
-                    opacity: 0.7,
-                    marginBottom: "16px",
-                    textAlign: "center",
-                    color: "#6B7280",
-                  }}
-                >
-                  Pourcentage d'élèves ayant deviné correctement à chaque tour
-                </p>
+              <div
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  padding: 0,
+                }}
+              >
                 <div
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-                    gap: "24px",
+                    border: "1px solid #E5E7EB",
+                    borderRadius: "12px",
+                    overflow: "hidden",
+                    backgroundColor: "#FFFFFF",
                   }}
                 >
-                  {Array.from(new Set(matchups.map((m) => m.round)))
-                    .sort((a, b) => a - b)
-                    .map((round) => {
-                      const isWinner = round === 4;
-                      return (
-                        <div
-                          key={round}
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr
+                        style={{
+                          backgroundColor: "#F9FAFB",
+                          borderBottom: "2px solid #E5E7EB",
+                        }}
+                      >
+                        <th
                           style={{
-                            marginBottom: "24px",
-                            gridColumn: isWinner ? "1 / -1" : "auto",
+                            padding: "12px 16px",
+                            textAlign: "center",
+                            fontWeight: "600",
+                            color: "#374151",
+                            fontSize: "14px",
                           }}
                         >
-                          {isWinner ? (
-                            <div
+                          Rang
+                        </th>
+                        <th
+                          style={{
+                            padding: "12px 16px",
+                            textAlign: "center",
+                            fontWeight: "600",
+                            color: "#374151",
+                            fontSize: "14px",
+                          }}
+                        >
+                          Nom d'utilisateur
+                        </th>
+                        <th
+                          style={{
+                            padding: "12px 16px",
+                            textAlign: "center",
+                            fontWeight: "600",
+                            color: "#374151",
+                            fontSize: "14px",
+                          }}
+                        >
+                          Points
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {leaderboard.map((score, index) => {
+                        const isCurrentStudent =
+                          score.student_id === currentStudentId;
+                        const isTopThree = index < 3;
+                        return (
+                          <tr
+                            key={score.student_id}
+                            style={{
+                              backgroundColor: isCurrentStudent
+                                ? "#F5F3FF"
+                                : isTopThree
+                                  ? "#F9FAFB"
+                                  : "#FFFFFF",
+                              borderBottom:
+                                index < leaderboard.length - 1
+                                  ? "1px solid #E5E7EB"
+                                  : "none",
+                              fontWeight: isCurrentStudent ? "600" : "400",
+                            }}
+                          >
+                            <td
                               style={{
-                                border: "2px solid #FACC15",
-                                borderRadius: "16px",
-                                padding: "24px",
-                                marginTop: "24px",
-                                background:
-                                  "linear-gradient(to bottom, #FFFBEB, #FFFFFF)",
-                                animation:
-                                  "championGlow 4s ease-in-out infinite",
+                                padding: "12px 16px",
+                                textAlign: "center",
+                                color: "#111827",
+                                fontSize: "14px",
                               }}
                             >
-                              <RoundAccuracyPie
-                                round={round}
-                                classStudentBrackets={[]}
-                                allStudentPicks={[]}
-                                masterResults={masterResults}
-                                allMatchups={matchups}
-                                roundAccuracyFromRpc={classRoundAccuracy}
-                              />
-                            </div>
-                          ) : (
-                            <RoundAccuracyPie
-                              round={round}
-                              classStudentBrackets={[]}
-                              allStudentPicks={[]}
-                              masterResults={masterResults}
-                              allMatchups={matchups}
-                              roundAccuracyFromRpc={classRoundAccuracy}
-                            />
-                          )}
-                        </div>
-                      );
-                    })}
+                              {score.rank}
+                            </td>
+                            <td
+                              style={{
+                                padding: "12px 16px",
+                                textAlign: "center",
+                                color: "#111827",
+                                fontSize: "14px",
+                              }}
+                            >
+                              {score.student_name}
+                            </td>
+                            <td
+                              style={{
+                                padding: "12px 16px",
+                                textAlign: "center",
+                                color: "#111827",
+                                fontSize: "14px",
+                              }}
+                            >
+                              {score.total_score}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
+
+                {/* Class Accuracy by Round Section */}
+                {classRoundAccuracy.length > 0 && masterResults.length > 0 && (
+                  <div style={{ marginTop: "48px" }}>
+                    <h2
+                      style={{
+                        fontSize: "24px",
+                        marginBottom: "8px",
+                        color: "#111827",
+                        textAlign: "center",
+                      }}
+                    >
+                      📊 Réussite de la classe
+                    </h2>
+                    <p
+                      style={{
+                        fontSize: "14px",
+                        opacity: 0.7,
+                        marginBottom: "16px",
+                        textAlign: "center",
+                        color: "#6B7280",
+                      }}
+                    >
+                      Pourcentage d'élèves ayant deviné correctement à chaque
+                      tour
+                    </p>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "repeat(auto-fit, minmax(300px, 1fr))",
+                        gap: "24px",
+                      }}
+                    >
+                      {Array.from(new Set(matchups.map((m) => m.round)))
+                        .sort((a, b) => a - b)
+                        .map((round) => {
+                          const isWinner = round === 4;
+                          return (
+                            <div
+                              key={round}
+                              style={{
+                                marginBottom: "24px",
+                                gridColumn: isWinner ? "1 / -1" : "auto",
+                              }}
+                            >
+                              {isWinner ? (
+                                <div
+                                  style={{
+                                    border: "2px solid #FACC15",
+                                    borderRadius: "16px",
+                                    padding: "24px",
+                                    marginTop: "24px",
+                                    background:
+                                      "linear-gradient(to bottom, #FFFBEB, #FFFFFF)",
+                                    animation:
+                                      "championGlow 4s ease-in-out infinite",
+                                  }}
+                                >
+                                  <RoundAccuracyPie
+                                    round={round}
+                                    classStudentBrackets={[]}
+                                    allStudentPicks={[]}
+                                    masterResults={masterResults}
+                                    allMatchups={matchups}
+                                    roundAccuracyFromRpc={classRoundAccuracy}
+                                  />
+                                </div>
+                              ) : (
+                                <RoundAccuracyPie
+                                  round={round}
+                                  classStudentBrackets={[]}
+                                  allStudentPicks={[]}
+                                  masterResults={masterResults}
+                                  allMatchups={matchups}
+                                  roundAccuracyFromRpc={classRoundAccuracy}
+                                />
+                              )}
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-            </div>
             ) : (
               <p
                 style={{
@@ -1585,6 +1596,9 @@ export default function StudentBracketPage() {
           {isFinalized && (
             <div
               style={{
+                maxWidth: "1100px",
+                marginLeft: "auto",
+                marginRight: "auto",
                 marginBottom: "16px",
                 padding: "12px",
                 backgroundColor: "#FEF3C7",
@@ -1601,7 +1615,7 @@ export default function StudentBracketPage() {
             .sort(([a], [b]) => a - b)
             .map(([round, roundMatchups]) => (
               <div key={round}>
-                <h2>Round {round}</h2>
+                <h2>Tour {round}</h2>
                 {roundMatchups.map((matchup) => {
                   const validOptions = getValidOptionsForMatchup(
                     matchup,
@@ -1630,7 +1644,7 @@ export default function StudentBracketPage() {
                       popTimerRef.current = window.setTimeout(() => {
                         setRecentlySelected(null);
                         popTimerRef.current = null;
-                      }, 900000);
+                      }, 900);
                     }
                   };
 
@@ -1653,31 +1667,54 @@ export default function StudentBracketPage() {
                       popTimerRef.current = window.setTimeout(() => {
                         setRecentlySelected(null);
                         popTimerRef.current = null;
-                      }, 900000);
+                      }, 900);
                     }
                   };
 
                   return (
-                    <div key={matchup.id} style={{ marginBottom: "24px" }}>
-                      <label
-                        style={{
-                          display: "block",
-                          marginBottom: "12px",
-                          fontSize: "14px",
-                          fontWeight: "600",
-                          color: "#374151",
-                        }}
-                      >
-                        Matchup {matchup.matchup_number}
-                      </label>
+                    <div
+                      key={matchup.id}
+                      style={{
+                        marginBottom: "18px",
+                        padding: "16px",
+                        border: "1px solid #E5E7EB",
+                        borderRadius: "14px",
+                        backgroundColor: "#FFFFFF",
+                        boxShadow: "0 6px 20px rgba(0,0,0,0.04)",
+                      }}
+                    >
                       <div
                         style={{
                           display: "flex",
-                          gap: "16px",
-                          maxWidth: "700px",
-                          margin: "0 auto",
-                          justifyContent: "center",
-                          alignItems: "stretch",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: "12px",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: "14px",
+                            fontWeight: "600",
+                            color: "#374151",
+                          }}
+                        >
+                          Match {matchup.matchup_number}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: "12px",
+                            color: "#6B7280",
+                          }}
+                        >
+                          Tour {matchup.round}
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns:
+                            "repeat(auto-fit, minmax(260px, 1fr))",
+                          gap: "12px",
                         }}
                       >
                         {validOptions.map((songId) => {
@@ -1698,8 +1735,8 @@ export default function StudentBracketPage() {
                               onKeyDown={(e) => handleKeyDown(e, songId)}
                               aria-pressed={isSelected}
                               style={{
-                                flex: 1,
-                                minHeight: "56px",
+                                width: "100%",
+                                minHeight: "64px",
                                 padding: "16px",
                                 borderRadius: "8px",
                                 textAlign: "center",
@@ -1790,7 +1827,7 @@ export default function StudentBracketPage() {
                                     borderRadius: "9999px",
                                   }}
                                 >
-                                  Elimininée
+                                  Éliminée
                                 </span>
                               )}
                             </button>
@@ -1849,7 +1886,7 @@ export default function StudentBracketPage() {
                   e.currentTarget.style.transform = "scale(1)";
                 }}
               >
-                Finalize Bracket
+                Finaliser mon tableau
               </button>
             </div>
           )}
@@ -1875,7 +1912,8 @@ export default function StudentBracketPage() {
                     marginBottom: "16px",
                   }}
                 >
-                  Finalizing locks all selections. This cannot be undone.
+                  Si tu finalises ton tableau, tu ne pourras plus le modifier.
+                  T'es sûr(e) de tes choix ?
                 </p>
                 <div
                   style={{
@@ -1911,7 +1949,7 @@ export default function StudentBracketPage() {
                           : 1,
                     }}
                   >
-                    Cancel
+                    Annuler
                   </button>
                   <button
                     onClick={handleFinalize}
@@ -1942,7 +1980,7 @@ export default function StudentBracketPage() {
                           : 1,
                     }}
                   >
-                    {finalizing ? "Finalizing..." : "Confirm Finalize"}
+                    {finalizing ? "Finalisation..." : "Confirmer"}
                   </button>
                 </div>
               </div>

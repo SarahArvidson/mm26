@@ -28,15 +28,17 @@ const FAQ_ITEMS: Array<{ question: string; answer: string }> = [
   {
     question: "Is Tableaumanie free to use?",
     answer:
-      "Yeah, absolutely. To be honest, I wanted to give it as a gift to my former students. Making it free is the best way to make that happen. It's true that I took a major pay cut to change my life so I can do things like this, so I won't say know to gifting me a cup of coffee or something small like that. You'll find my Venmo linked in the footer.",
+      "Yeah, absolutely. To be honest, I wanted to give it as a gift to my former students. Making it free is the best way to make that happen. If you want to buy me a coffee, you can find my Venmo linked in the footer.",
   },
   {
     question: "How do students use Tableaumanie?",
-    answer: "(Write answer here)",
+    answer:
+      "If you are a student and you want to use Tableaumanie, you'll need to ask your instructor to sign up and provide you with a class code. You can use the sign up form on the login page to create an account. Once you've logged in, you can create your own bracket. As Manie Musicale progresses, your instructor will open voting for you. You can vote for the song you think will win, and you can check out the performance and ranking areas to see how accurate your bracket predictions were as the month of March stomps on by.",
   },
   {
     question: "How do teachers use Tableaumanie?",
-    answer: "(Write answer here)",
+    answer:
+      "If you're a teacher and you want to use Tableaumanie, you'll need to create a teacher account and verify it via email. Then, you'll need to fill out a super short access request form. I'll grant access and you'll be able to generate class codes, sort students, open and close voting, see match results and reveal videos, and publish those results with your students when you are ready to do so. You will also find some analytics about how your students are voting, an option to export votes via CSV, and a printable copy of the current official paper bracket.",
   },
   {
     question: "How can I request changes or new features?",
@@ -51,7 +53,7 @@ const FAQ_ITEMS: Array<{ question: string; answer: string }> = [
   {
     question: "What other projects are you working on?",
     answer:
-      "I have been interested in computers and coding for a very long time. When I left my teaching job last year, I wanted instead to shift to part-time work while I started a small business and improved my software engineering skills. I'm not sure I want to keep the small business, but I am loving coding, and the full-stack software engineer course that I have been working through actually led me to creating Tableaumanie. I've also created some fun little personal web apps, like a habit tracker that my husband and I use to complete 'quests' and earn 'rewards.' For example, we recently stayed well below our grocery store budget, which was a quest. The reward was a new board game we been wanting. I have also built a couple of date night generators and automated tech stacks for my small business clients. If you have an idea for something that I might like to try building, let me know in the feedback!",
+      "I have been interested in computers and coding for a very long time. When I left my teaching job last year, I wanted to start a small business and earn some software engineering skills. I'm not sure I want to keep the small business, but I am loving coding, and the full-stack software engineer course that I have been working through actually led me to creating Tableaumanie. I've also created some fun little personal web apps, like a habit tracker that my husband and I use to complete 'quests' and earn 'rewards.' For example, we recently stayed well below our grocery store budget, which was a quest. The reward was a new board game we been wanting. I have also built a couple of date night generators and automated tech stacks for my small business clients. If you have an idea for something that I might like to try building, let me know in the feedback!",
   },
 ];
 
