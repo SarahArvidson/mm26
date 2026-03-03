@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@ffx/sdk": "file:vendor/ffs-sdk",
+    "@ffx/sdk": "git+https://github.com/SarahArvidson/ffs-SDK.git#main",
     "@supabase/supabase-js": "^2.95.3",
     "bcryptjs": "^2.4.3",
     "react": "^19.2.0",

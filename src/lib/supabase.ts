@@ -1,4 +1,4 @@
-import { SupabaseIntegration } from '@ffx/sdk/services';
+import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -14,14 +14,22 @@ if (supabaseAnonKey) {
   console.warn('VITE_SUPABASE_ANON_KEY is not set');
 }
 
-export const supabase = new SupabaseIntegration({
-  url: supabaseUrl,
-  anonKey: supabaseAnonKey,
-  options: {
-    auth: {
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true,
-    },
+const client = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
   },
 });
+
+export const supabase = {
+  supabase: client,
+  from: client.from.bind(client),
+  rpc: client.rpc.bind(client),
+  getSession: () => client.auth.getSession(),
+  signIn: (opts: { email: string; password: string }) =>
+    client.auth.signInWithPassword({ email: opts.email, password: opts.password }),
+  signOut: () => client.auth.signOut(),
+  resetPassword: (opts: { email: string; redirectTo: string }) =>
+    client.auth.resetPasswordForEmail(opts.email, { redirectTo: opts.redirectTo }),
+};

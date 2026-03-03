@@ -194,7 +194,6 @@ export default function StudentBracketPage() {
     }
 
     if (classId) setCurrentClassId(classId);
-    const currentStudentId = studentId;
 
     try {
       setLoading(true);
@@ -247,6 +246,7 @@ export default function StudentBracketPage() {
       if (!session?.user) {
         throw new Error("No authenticated session");
       }
+      const resolvedStudentId: string = session.user.id;
 
       const payload = {
         student_id: session.user.id,
@@ -318,7 +318,7 @@ export default function StudentBracketPage() {
       }));
       setLeaderboard(sortedLeaderboard);
 
-      const rank = getStudentRank(currentStudentId, sortedLeaderboard);
+      const rank = getStudentRank(resolvedStudentId, sortedLeaderboard);
       setStudentRank(rank);
 
       const { data: roundAccuracyData, error: roundAccuracyError } = await (
@@ -354,7 +354,7 @@ export default function StudentBracketPage() {
         const { data: votesData } = await supabase
           .from("student_votes")
           .select("*")
-          .eq("student_id", currentStudentId)
+          .eq("student_id", resolvedStudentId)
           .eq("season_id", active.id);
         setMyVotes((votesData || []) as StudentVote[]);
 
