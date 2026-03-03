@@ -14,7 +14,7 @@ export async function uploadPaperBracket(
     const filePath = `${studentBracketId}/${timestamp}_${sanitizedFileName}`;
 
     // Upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.supabase.storage
+    const { error: uploadError } = await supabase.supabase.storage
       .from(BUCKET_NAME)
       .upload(filePath, file, {
         contentType: file.type,
@@ -27,7 +27,14 @@ export async function uploadPaperBracket(
 
     // Update student_brackets with file_path
     // Note: This assumes file_path column exists. If not, it will need to be added to schema.
-    const { error: updateError } = await supabase.supabase
+    const db = supabase.supabase as unknown as {
+      from: (table: string) => {
+        update: (values: object) => {
+          eq: (col: string, val: unknown) => Promise<{ error: { message?: string } | null }>;
+        };
+      };
+    };
+    const { error: updateError } = await db
       .from('student_brackets')
       .update({ file_path: filePath })
       .eq('id', studentBracketId);

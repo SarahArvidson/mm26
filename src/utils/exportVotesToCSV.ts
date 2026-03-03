@@ -3,7 +3,6 @@ import type {
   StudentPick,
   BracketMatchup,
   Song,
-  UUID,
 } from './bracketLogic';
 import { computeVoteCounts } from './computeVoteCounts';
 
@@ -12,7 +11,7 @@ export function exportVotesToCSV(
   allStudentPicks: StudentPick[],
   matchups: BracketMatchup[],
   songs: Song[],
-  className?: string
+  _className?: string
 ): string {
   // Get vote counts using centralized utility
   const voteCounts = computeVoteCounts(studentBrackets, allStudentPicks);

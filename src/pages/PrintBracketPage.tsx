@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import {
-  resolveActiveSeason,
   type Season,
   type BracketMatchup,
   type Song,

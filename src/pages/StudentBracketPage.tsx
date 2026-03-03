@@ -421,14 +421,20 @@ export default function StudentBracketPage() {
   };
 
   const handleFinalize = async () => {
-    const { data: authData } = await supabase.supabase.auth.getUser();
     if (!studentBracket || studentBracket.finalized || finalizing) return;
 
     try {
       setFinalizing(true);
       setError(null);
 
-      const { error: updateError } = await supabase.supabase
+      const db = supabase.supabase as unknown as {
+        from: (table: string) => {
+          update: (values: object) => {
+            eq: (col: string, val: unknown) => Promise<{ error: { message?: string } | null }>;
+          };
+        };
+      };
+      const { error: updateError } = await db
         .from("student_brackets")
         .update({ finalized: true })
         .eq("id", studentBracket.id);

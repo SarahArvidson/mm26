@@ -19,7 +19,7 @@ export default function Layout() {
       .select("id")
       .eq("id", user.id)
       .maybeSingle()
-      .then(({ data }) => setIsTeacher(!!data));
+      .then(({ data }: { data: { id: string } | null }) => setIsTeacher(!!data));
   }, [user?.id]);
 
   const [isWideScreen, setIsWideScreen] = useState(
