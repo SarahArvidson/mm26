@@ -566,8 +566,7 @@ export default function TeacherDashboardPage() {
     );
   }
 
-  const isNarrow =
-    typeof window !== "undefined" && window.innerWidth < 480;
+  const isNarrow = typeof window !== "undefined" && window.innerWidth < 480;
   const classCardsWrapStyle = {
     display: "flex" as const,
     gap: isNarrow ? "18px" : "24px",
@@ -1947,7 +1946,7 @@ export default function TeacherDashboardPage() {
                         fontSize: "14px",
                       }}
                     >
-                      No students have finalized their brackets yet.
+                      Aucun élève n'a encore terminé son tableau.
                     </div>
                   )}
                 </div>
