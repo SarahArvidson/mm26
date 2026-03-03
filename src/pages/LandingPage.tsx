@@ -19,8 +19,12 @@ export default function LandingPage() {
         }
       `}</style>
       <h1
+        className="font-caveat-brush"
         style={{
-          fontSize: "2.5rem",
+          fontFamily: '"Caveat Brush", system-ui, sans-serif',
+          fontSize: "clamp(3.4rem, 7vw, 6.5rem)",
+          lineHeight: 1,
+          letterSpacing: "0.5px",
           fontWeight: 700,
           color: "#111827",
           marginBottom: "32px",

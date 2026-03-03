@@ -566,6 +566,26 @@ export default function TeacherDashboardPage() {
     );
   }
 
+  const isNarrow =
+    typeof window !== "undefined" && window.innerWidth < 480;
+  const classCardsWrapStyle = {
+    display: "flex" as const,
+    gap: isNarrow ? "18px" : "24px",
+    flexWrap: "wrap" as const,
+    width: "100%",
+  };
+  const classCardStyle = {
+    padding: isNarrow ? "16px" : "22px",
+    border: "1px solid #E5E7EB",
+    borderRadius: "8px",
+    backgroundColor: "#FFFFFF",
+    minWidth: "300px",
+    flex: 1,
+    width: "100%" as const,
+    maxWidth: "100%",
+    boxSizing: "border-box" as const,
+  };
+
   return (
     <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "24px" }}>
       <h1>Tableaumanie Espace Enseignant - {activeSeason.name}</h1>
@@ -575,31 +595,16 @@ export default function TeacherDashboardPage() {
           "class",
           "Ma classe",
           <>
-            <div
-              style={{
-                display: "flex",
-                gap: "24px",
-                flexWrap: "wrap",
-              }}
-            >
+            <div style={classCardsWrapStyle}>
               {/* Select Class Card */}
-              <div
-                style={{
-                  padding: "22px",
-                  border: "1px solid #E5E7EB",
-                  borderRadius: "8px",
-                  backgroundColor: "#FFFFFF",
-                  minWidth: "300px",
-                  flex: 1,
-                }}
-              >
+              <div style={classCardStyle}>
                 <label
                   style={{
                     display: "block",
                     fontWeight: "600",
                     color: "#374151",
                     marginBottom: "8px",
-                    fontSize: "14px",
+                    fontSize: "16px",
                     fontFamily: '"Arvo", serif',
                   }}
                 >
@@ -773,19 +778,68 @@ export default function TeacherDashboardPage() {
                       </div>
                     ) : null;
                   })()}
+                {selectedClassId && (
+                  <div
+                    style={{
+                      marginTop: "12px",
+                      display: "flex",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      disabled={!selectedClassId}
+                      onClick={async () => {
+                        if (
+                          !selectedClassId ||
+                          !window.confirm(
+                            "Supprimer cette classe ? Cette action est définitive.",
+                          )
+                        )
+                          return;
+                        if (!user) return;
+                        try {
+                          const { error: delError } = await supabase
+                            .from("classes")
+                            .delete()
+                            .eq("id", selectedClassId);
+                          if (delError) throw delError;
+                          setSelectedClassId(null);
+                          setGeneratedJoinCode(null);
+                          setShowStudents(false);
+                          const { data: classesData, error: classesError } =
+                            await supabase
+                              .from("classes")
+                              .select("*")
+                              .eq("teacher_id", user.id);
+                          if (classesError) throw classesError;
+                          setClasses((classesData || []) as Class[]);
+                          setError(null);
+                        } catch {
+                          setError(
+                            "Impossible de supprimer la classe pour le moment. Supprime d'abord les élèves ou réessaie plus tard.",
+                          );
+                        }
+                      }}
+                      style={{
+                        padding: "8px 14px",
+                        fontSize: "14px",
+                        fontWeight: "500",
+                        color: "#B91C1C",
+                        backgroundColor: "#FEE2E2",
+                        border: "1px solid #FCA5A5",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Supprimer la classe
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Create New Class Card */}
-              <div
-                style={{
-                  padding: "22px",
-                  border: "1px solid #E5E7EB",
-                  borderRadius: "8px",
-                  backgroundColor: "#FFFFFF",
-                  minWidth: "300px",
-                  flex: 1,
-                }}
-              >
+              <div style={classCardStyle}>
                 <h3
                   style={{
                     marginTop: 0,
@@ -793,6 +847,7 @@ export default function TeacherDashboardPage() {
                     fontWeight: "600",
                     color: "#374151",
                     fontSize: "16px",
+                    fontFamily: '"Arvo", serif',
                   }}
                 >
                   Créer une nouvelle classe
@@ -1945,8 +2000,9 @@ export default function TeacherDashboardPage() {
                         lineHeight: "1.5",
                       }}
                     >
-                      No master results available yet. Master bracket winners
-                      must be set before analytics can be displayed.
+                      Pas de résultats disponibles. Les gagnants du tableau
+                      principal doivent être définis avant que les analyses
+                      puissent être affichées.
                     </div>
                   ) : (
                     <>
